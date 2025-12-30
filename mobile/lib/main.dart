@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'core/config/app_routes.dart';
+import 'core/utils/constants.dart';
 import 'features/health/health_screen.dart';
 
 void main() {
@@ -12,12 +14,13 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'ChurchConnect',
+      title: AppConstants.appName,
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,
       ),
-      home: const HealthScreen(),
+      routes: AppRoutes.routes(),
+      initialRoute: AppRoutes.health,
     );
   }
 }
