@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../core/config/app_routes.dart';
 import '../../widgets/loading_indicator.dart';
 import '../../widgets/error_message.dart';
 import 'resource_service.dart';
@@ -55,7 +56,28 @@ class _MemberResourcesScreenState extends State<MemberResourcesScreen> {
 
 	Widget _buildBody() {
 		if (_loading) return const LoadingIndicator(message: 'Loading resources...');
-		if (_error != null) return ErrorMessage(message: _error!, onRetry: _load);
+		if (_error != null) {
+			final msg = _error!;
+			if (msg.contains('Authentication required') || msg.contains('Not authenticated')) {
+				return Center(
+					child: Column(
+						mainAxisSize: MainAxisSize.min,
+						children: [
+							const Text('Please log in to view member resources'),
+							const SizedBox(height: 12),
+							OutlinedButton(
+								onPressed: () => Navigator.of(context).pushNamed(AppRoutes.login),
+								child: const Text('Go to Login'),
+							),
+						],
+					),
+				);
+			}
+			if (msg.contains('Members only')) {
+				return const Center(child: Text('This content is available to members only'));
+			}
+			return ErrorMessage(message: msg, onRetry: _load);
+		}
 		if (_items.isEmpty) return const Center(child: Text('No member resources available'));
 
 		return ListView.separated(

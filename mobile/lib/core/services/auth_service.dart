@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import '../config/api_config.dart';
 import '../utils/validators.dart';
 import 'api_service.dart';
@@ -16,18 +15,19 @@ class AuthService {
 			'email': email.trim(),
 			'password': password,
 		});
-
-		final token = resp['token']?.toString();
+		final data = (resp['data'] is Map) ? resp['data'] as Map : resp;
+		final token = data['token']?.toString();
+		final role = data['role']?.toString();
 		if (token == null || token.isEmpty) {
 			throw AuthException('Missing token from server');
 		}
 
-		await StorageService.saveToken(token);
+		await StorageService.saveSession(token: token, role: role);
 		return token;
 	}
 
 	static Future<void> logout() async {
-		await StorageService.clearToken();
+		await StorageService.clearSession();
 	}
 
 	static Future<bool> isLoggedIn() async {
@@ -36,6 +36,8 @@ class AuthService {
 	}
 
 	static Future<String?> getToken() => StorageService.getToken();
+
+	static Future<String?> getRole() => StorageService.getRole();
 }
 
 class AuthException implements Exception {

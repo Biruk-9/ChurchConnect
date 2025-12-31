@@ -2,8 +2,8 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 
 /// Centralized API endpoints and host resolution.
 class ApiConfig {
-	// Default ports for local dev
-	static const int _defaultPort = 5000;
+	// Default port for local dev (update to match backend)
+	static const int _defaultPort = 5001;
 
 	// Base host per platform. Update these if your backend host changes.
 	static String get _host {
@@ -18,5 +18,6 @@ class ApiConfig {
 	// Paths (relative) used with ApiService builders
 	static const String healthPath = '/health';
 	static const String loginPath = '/api/auth/login';
+	static const String adminBasePath = '/api/_admin_9b27';
 
 }

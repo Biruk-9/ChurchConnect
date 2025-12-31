@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'core/config/app_routes.dart';
 import 'core/utils/constants.dart';
-import 'features/health/health_screen.dart';
 
 void main() {
   runApp(const MyApp());
@@ -20,7 +19,8 @@ class MyApp extends StatelessWidget {
         useMaterial3: true,
       ),
       routes: AppRoutes.routes(),
-      initialRoute: AppRoutes.health,
+      // Use initialRoute so '/' comes from the routes table.
+      initialRoute: AppRoutes.home,
     );
   }
 }
