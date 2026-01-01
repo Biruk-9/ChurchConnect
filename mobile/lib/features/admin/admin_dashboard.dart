@@ -269,6 +269,13 @@ class _AdminDashboardState extends State<AdminDashboard> {
 				'color': Colors.teal,
 			},
 			{
+				'title': 'Verses',
+				'icon': Icons.menu_book_outlined,
+				'description': 'Schedule verse of the day.',
+				'route': AppRoutes.manageVerses,
+				'color': Colors.indigo,
+			},
+			{
 				'title': 'Events',
 				'icon': Icons.event_note_outlined,
 				'description': 'Schedule and track attendance.',

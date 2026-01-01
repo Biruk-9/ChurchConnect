@@ -19,10 +19,8 @@ class MyApp extends StatelessWidget {
         useMaterial3: true,
       ),
       routes: AppRoutes.routes(),
-      // Use initialRoute so '/' comes from the routes table.
       initialRoute: AppRoutes.home,
     );
   }
 }
 
-// Removed the default counter screen and wired HealthScreen as home.

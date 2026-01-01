@@ -6,7 +6,10 @@ class VerseService {
 	/// Fetch verse of the day (public).
 	static Future<Map<String, dynamic>> fetchVerse() async {
 		final resp = await ApiService.get(_path);
-		if (resp is Map<String, dynamic>) return resp;
-		return {'ref': resp['ref']?.toString(), 'text': resp['text']?.toString()};
+		final data = resp['data'] ?? resp;
+		return {
+			'ref': data['ref']?.toString(),
+			'text': data['text']?.toString(),
+		};
 	}
 }

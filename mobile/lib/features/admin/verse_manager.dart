@@ -1,27 +1,14 @@
-import 'dart:typed_data';
-
-import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import '../../core/services/admin_service.dart';
 import '../../widgets/custom_button.dart';
 import '../../widgets/error_message.dart';
 import '../../widgets/loading_indicator.dart';
 
-class AnnouncementManager extends StatefulWidget {
-  const AnnouncementManager({super.key});
+class VerseManager extends StatefulWidget {
+  const VerseManager({super.key});
 
   @override
-  State<AnnouncementManager> createState() => _AnnouncementManagerState();
-}
-
-class _SectionHeader extends StatelessWidget {
-  const _SectionHeader({required this.title});
-  final String title;
-
-  @override
-  Widget build(BuildContext context) {
-    return Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold));
-  }
+  State<VerseManager> createState() => _VerseManagerState();
 }
 
 class _CardShell extends StatelessWidget {
@@ -51,30 +38,53 @@ class _CardShell extends StatelessWidget {
   }
 }
 
-class _AnnouncementManagerState extends State<AnnouncementManager> {
+class _VerseManagerState extends State<VerseManager> {
   final _formKey = GlobalKey<FormState>();
-  final _titleCtrl = TextEditingController();
-  final _contentCtrl = TextEditingController();
-  Uint8List? _imageBytes;
-  String? _imageName;
+  final _refCtrl = TextEditingController();
+  final _textCtrl = TextEditingController();
+  final _dateCtrl = TextEditingController();
 
   bool _loading = false;
   bool _saving = false;
   String? _error;
   String? _editingId;
   List<Map<String, dynamic>> _items = [];
+  DateTime _selectedDate = DateTime.now();
 
   @override
   void initState() {
     super.initState();
+    _syncDateField();
     _load();
   }
 
   @override
   void dispose() {
-    _titleCtrl.dispose();
-    _contentCtrl.dispose();
+    _refCtrl.dispose();
+    _textCtrl.dispose();
+    _dateCtrl.dispose();
     super.dispose();
+  }
+
+  void _syncDateField() {
+    final mm = _selectedDate.month.toString().padLeft(2, '0');
+    final dd = _selectedDate.day.toString().padLeft(2, '0');
+    _dateCtrl.text = '${_selectedDate.year}-$mm-$dd';
+  }
+
+  Future<void> _pickDate() async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _selectedDate,
+      firstDate: DateTime.now().subtract(const Duration(days: 1)),
+      lastDate: DateTime.now().add(const Duration(days: 365)),
+    );
+    if (picked != null) {
+      setState(() {
+        _selectedDate = picked;
+        _syncDateField();
+      });
+    }
   }
 
   Future<void> _load() async {
@@ -83,7 +93,7 @@ class _AnnouncementManagerState extends State<AnnouncementManager> {
       _error = null;
     });
     try {
-      final data = await AdminService.fetchAnnouncements();
+      final data = await AdminService.fetchVerses();
       if (!mounted) return;
       setState(() => _items = data);
     } catch (e) {
@@ -95,37 +105,24 @@ class _AnnouncementManagerState extends State<AnnouncementManager> {
   }
 
   void _startEdit(Map<String, dynamic> item) {
+    final dateStr = item['date']?.toString();
+    final parsedDate = dateStr != null ? DateTime.tryParse(dateStr) : null;
     setState(() {
       _editingId = item['_id']?.toString();
-      _titleCtrl.text = item['title']?.toString() ?? '';
-      _contentCtrl.text = item['content']?.toString() ?? '';
-      _imageBytes = null;
-      _imageName = null;
+      _refCtrl.text = item['ref']?.toString() ?? '';
+      _textCtrl.text = item['text']?.toString() ?? '';
+      _selectedDate = parsedDate ?? DateTime.now();
+      _syncDateField();
     });
   }
 
   void _resetForm() {
     _formKey.currentState?.reset();
-    _titleCtrl.clear();
-    _contentCtrl.clear();
-    _imageBytes = null;
-    _imageName = null;
+    _refCtrl.clear();
+    _textCtrl.clear();
+    _selectedDate = DateTime.now();
+    _syncDateField();
     _editingId = null;
-  }
-
-  Future<void> _pickImage() async {
-    final result = await FilePicker.platform.pickFiles(type: FileType.image, withData: true);
-    if (result != null && result.files.single.bytes != null) {
-      setState(() {
-        _imageBytes = result.files.single.bytes;
-        _imageName = result.files.single.name;
-      });
-    }
-  }
-
-  String _imageSummary() {
-    if (_imageName != null) return 'Selected: $_imageName';
-    return _editingId == null ? 'No image selected (optional)' : 'Keep existing image';
   }
 
   Future<void> _save() async {
@@ -136,28 +133,22 @@ class _AnnouncementManagerState extends State<AnnouncementManager> {
       _error = null;
     });
     try {
+      final payload = {
+        'date': _dateCtrl.text.trim(),
+        'ref': _refCtrl.text.trim(),
+        'text': _textCtrl.text.trim(),
+      };
       if (_editingId == null) {
-        await AdminService.createAnnouncement(
-          title: _titleCtrl.text.trim(),
-          content: _contentCtrl.text.trim(),
-          imageBytes: _imageBytes,
-          filename: _imageName,
-        );
+        await AdminService.createVerse(date: payload['date']!, ref: payload['ref']!, text: payload['text']!);
       } else {
-        await AdminService.updateAnnouncement(
-          id: _editingId!,
-          title: _titleCtrl.text.trim(),
-          content: _contentCtrl.text.trim(),
-          imageBytes: _imageBytes,
-          filename: _imageName,
-        );
+        await AdminService.updateVerse(id: _editingId!, date: payload['date'], ref: payload['ref'], text: payload['text']);
       }
       if (!mounted) return;
       _resetForm();
       await _load();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(wasEditing ? 'Announcement updated' : 'Announcement created')),
+          SnackBar(content: Text(wasEditing ? 'Verse updated' : 'Verse scheduled')),
         );
       }
     } catch (e) {
@@ -174,10 +165,10 @@ class _AnnouncementManagerState extends State<AnnouncementManager> {
       _error = null;
     });
     try {
-      await AdminService.deleteAnnouncement(id);
+      await AdminService.deleteVerse(id);
       await _load();
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Announcement deleted')));
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Verse deleted')));
       }
     } catch (e) {
       if (!mounted) return;
@@ -190,8 +181,8 @@ class _AnnouncementManagerState extends State<AnnouncementManager> {
   @override
   Widget build(BuildContext context) {
     return _CardShell(
-      title: 'Announcements Management',
-      subtitle: 'Create, edit, delete announcements (admin only).',
+      title: 'Verse of the Day',
+      subtitle: 'Schedule seven verses each weekend. Edits blocked after posting.',
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -200,23 +191,24 @@ class _AnnouncementManagerState extends State<AnnouncementManager> {
             child: Column(
               children: [
                 TextFormField(
-                  controller: _titleCtrl,
-                  decoration: const InputDecoration(labelText: 'Title'),
-                  validator: (v) => (v == null || v.trim().isEmpty) ? 'Title required' : null,
+                  controller: _refCtrl,
+                  decoration: const InputDecoration(labelText: 'Reference (e.g., John 3:16)'),
+                  validator: (v) => (v == null || v.trim().isEmpty) ? 'Reference required' : null,
                 ),
                 const SizedBox(height: 8),
                 TextFormField(
-                  controller: _contentCtrl,
+                  controller: _textCtrl,
                   maxLines: 3,
-                  decoration: const InputDecoration(labelText: 'Content'),
-                  validator: (v) => (v == null || v.trim().isEmpty) ? 'Content required' : null,
+                  decoration: const InputDecoration(labelText: 'Verse text'),
+                  validator: (v) => (v == null || v.trim().isEmpty) ? 'Text required' : null,
                 ),
                 const SizedBox(height: 8),
-                Row(
-                  children: [
-                    Expanded(child: Text(_imageSummary())),
-                    TextButton.icon(onPressed: _pickImage, icon: const Icon(Icons.upload_file), label: const Text('Pick image')),
-                  ],
+                TextFormField(
+                  controller: _dateCtrl,
+                  readOnly: true,
+                  decoration: const InputDecoration(labelText: 'Date'),
+                  onTap: _pickDate,
+                  validator: (v) => (v == null || v.trim().isEmpty) ? 'Date required' : null,
                 ),
                 const SizedBox(height: 12),
                 if (_error != null) ...[
@@ -227,7 +219,7 @@ class _AnnouncementManagerState extends State<AnnouncementManager> {
                   children: [
                     Expanded(
                       child: CustomButton(
-                        label: _editingId == null ? 'Create Announcement' : 'Update Announcement',
+                        label: _editingId == null ? 'Schedule Verse' : 'Update Verse',
                         loading: _saving,
                         onPressed: _save,
                       ),
@@ -240,13 +232,13 @@ class _AnnouncementManagerState extends State<AnnouncementManager> {
             ),
           ),
           const SizedBox(height: 12),
-          if (_loading) const LoadingIndicator(message: 'Loading announcements...')
+          if (_loading) const LoadingIndicator(message: 'Loading verses...')
           else ...[
             const Divider(),
-            const Align(alignment: Alignment.centerLeft, child: Text('Existing Announcements', style: TextStyle(fontWeight: FontWeight.w600))),
+            const Align(alignment: Alignment.centerLeft, child: Text('Scheduled Verses', style: TextStyle(fontWeight: FontWeight.w600))),
             const SizedBox(height: 6),
             if (_items.isEmpty)
-              const Text('No announcements yet', style: TextStyle(color: Colors.grey))
+              const Text('No verses scheduled', style: TextStyle(color: Colors.grey))
             else
               ListView.builder(
                 shrinkWrap: true,
@@ -255,17 +247,29 @@ class _AnnouncementManagerState extends State<AnnouncementManager> {
                 itemBuilder: (context, index) {
                   final item = _items[index];
                   final id = item['_id']?.toString() ?? '';
-                  final title = item['title']?.toString() ?? 'Untitled';
-                  final subtitle = item['content']?.toString() ?? '';
+                  final ref = item['ref']?.toString() ?? 'Reference';
+                  final text = item['text']?.toString() ?? '';
+                  final dateStr = item['date']?.toString();
+                  final posted = item['posted'] == true;
+                  final subtitle = '${dateStr ?? ''}${posted ? ' • Posted' : ''}';
                   return ListTile(
                     contentPadding: EdgeInsets.zero,
-                    title: Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),
-                    subtitle: Text(subtitle.isNotEmpty ? subtitle : 'No content'),
+                    title: Text(ref, style: const TextStyle(fontWeight: FontWeight.w600)),
+                    subtitle: Text('$subtitle\n$text'),
+                    isThreeLine: true,
                     trailing: Wrap(
                       spacing: 4,
                       children: [
-                        IconButton(icon: const Icon(Icons.edit_outlined), tooltip: 'Edit', onPressed: () => _startEdit(item)),
-                        IconButton(icon: const Icon(Icons.delete_outline, color: Colors.red), tooltip: 'Delete', onPressed: _saving ? null : () => _delete(id)),
+                        IconButton(
+                          icon: const Icon(Icons.edit_outlined),
+                          onPressed: posted ? null : () => _startEdit(item),
+                          tooltip: posted ? 'Already posted' : 'Edit',
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.delete_outline, color: Colors.red),
+                          onPressed: _saving || posted ? null : () => _delete(id),
+                          tooltip: posted ? 'Already posted' : 'Delete',
+                        ),
                       ],
                     ),
                   );

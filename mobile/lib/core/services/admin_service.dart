@@ -57,8 +57,8 @@ class AdminService {
   static Future<Map<String, dynamic>> createAnnouncement({
     required String title,
     required String content,
-    required Uint8List imageBytes,
-    required String filename,
+    Uint8List? imageBytes,
+    String? filename,
   }) async {
     return _multipartUpload(
       path: '${ApiConfig.adminBasePath}/announcements',
@@ -92,6 +92,66 @@ class AdminService {
     final resp = await http
       .delete(
         Uri.parse('${ApiConfig.baseUrl}${ApiConfig.adminBasePath}/announcements/$id'),
+        headers: _authHeaders(token),
+      )
+      .timeout(AppConstants.networkTimeout);
+    _decode(resp);
+  }
+
+  // Verses of the Day
+  static Future<List<Map<String, dynamic>>> fetchVerses() async {
+    final token = await _requireToken();
+    final resp = await http
+      .get(
+        Uri.parse('${ApiConfig.baseUrl}${ApiConfig.adminBasePath}/verses'),
+        headers: _authHeaders(token),
+      )
+      .timeout(AppConstants.networkTimeout);
+    return _asList(_decode(resp));
+  }
+
+  static Future<Map<String, dynamic>> createVerse({
+    required String date,
+    required String ref,
+    required String text,
+  }) async {
+    final token = await _requireToken();
+    final resp = await http
+      .post(
+        Uri.parse('${ApiConfig.baseUrl}${ApiConfig.adminBasePath}/verses'),
+        headers: _authHeaders(token),
+        body: jsonEncode({'date': date, 'ref': ref, 'text': text}),
+      )
+      .timeout(AppConstants.networkTimeout);
+    return _decode(resp);
+  }
+
+  static Future<Map<String, dynamic>> updateVerse({
+    required String id,
+    String? date,
+    String? ref,
+    String? text,
+  }) async {
+    final token = await _requireToken();
+    final resp = await http
+      .put(
+        Uri.parse('${ApiConfig.baseUrl}${ApiConfig.adminBasePath}/verses/$id'),
+        headers: _authHeaders(token),
+        body: jsonEncode({
+          if (date != null) 'date': date,
+          if (ref != null) 'ref': ref,
+          if (text != null) 'text': text,
+        }),
+      )
+      .timeout(AppConstants.networkTimeout);
+    return _decode(resp);
+  }
+
+  static Future<void> deleteVerse(String id) async {
+    final token = await _requireToken();
+    final resp = await http
+      .delete(
+        Uri.parse('${ApiConfig.baseUrl}${ApiConfig.adminBasePath}/verses/$id'),
         headers: _authHeaders(token),
       )
       .timeout(AppConstants.networkTimeout);
