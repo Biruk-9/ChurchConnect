@@ -4,7 +4,6 @@ import '../../core/services/admin_service.dart';
 import '../../core/services/auth_service.dart';
 import '../../widgets/loading_indicator.dart';
 import '../../widgets/error_message.dart';
-import 'admin_management_sections.dart';
 
 class AdminDashboard extends StatefulWidget {
 	const AdminDashboard({super.key});
@@ -189,7 +188,9 @@ class _AdminDashboardState extends State<AdminDashboard> {
 								const SizedBox(height: 12),
 								_buildRecentSection('Resources', _recent?['resources'] as List<dynamic>?),
 								const SizedBox(height: 24),
-								const AdminManagementSections(),
+								const Text('Management', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+								const SizedBox(height: 8),
+								_managementShortcuts(),
 							],
 						],
 					),
@@ -257,6 +258,53 @@ class _AdminDashboardState extends State<AdminDashboard> {
 			),
 		);
 	}
+
+	Widget _managementShortcuts() {
+		final items = [
+			{
+				'title': 'Announcements',
+				'icon': Icons.campaign_outlined,
+				'description': 'Post updates for members.',
+				'route': AppRoutes.manageAnnouncements,
+				'color': Colors.teal,
+			},
+			{
+				'title': 'Events',
+				'icon': Icons.event_note_outlined,
+				'description': 'Schedule and track attendance.',
+				'route': AppRoutes.manageEvents,
+				'color': Colors.deepPurple,
+			},
+			{
+				'title': 'Resources',
+				'icon': Icons.folder_special_outlined,
+				'description': 'Share files and links.',
+				'route': AppRoutes.manageResources,
+				'color': Colors.orange,
+			},
+			{
+				'title': 'Users',
+				'icon': Icons.admin_panel_settings_outlined,
+				'description': 'Manage member access.',
+				'route': AppRoutes.manageUsers,
+				'color': Colors.blue,
+			},
+		];
+
+		return Wrap(
+			spacing: 12,
+			runSpacing: 12,
+			children: items
+				.map((item) => _ManagementCard(
+					title: item['title'] as String,
+					icon: item['icon'] as IconData,
+					description: item['description'] as String,
+					color: item['color'] as Color,
+					onTap: () => Navigator.of(context).pushNamed(item['route'] as String),
+				))
+				.toList(),
+		);
+	}
 }
 
 class _StatCard extends StatelessWidget {
@@ -285,6 +333,64 @@ class _StatCard extends StatelessWidget {
 							Text(title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
 							Text(value.toString(), style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: color)),
 						],
+					),
+				),
+			),
+		);
+	}
+}
+
+class _ManagementCard extends StatelessWidget {
+	const _ManagementCard({
+		required this.title,
+		required this.icon,
+		required this.description,
+		required this.color,
+		required this.onTap,
+	});
+
+	final String title;
+	final IconData icon;
+	final String description;
+	final Color color;
+	final VoidCallback onTap;
+
+	@override
+	Widget build(BuildContext context) {
+		return SizedBox(
+			width: 220,
+			height: 120,
+			child: Card(
+				shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+				elevation: 1,
+				child: InkWell(
+					borderRadius: BorderRadius.circular(12),
+					onTap: onTap,
+					child: Padding(
+						padding: const EdgeInsets.all(12),
+						child: Column(
+							crossAxisAlignment: CrossAxisAlignment.start,
+							mainAxisAlignment: MainAxisAlignment.spaceBetween,
+							children: [
+								Container(
+									padding: const EdgeInsets.all(8),
+									decoration: BoxDecoration(
+										color: color.withOpacity(0.12),
+										borderRadius: BorderRadius.circular(10),
+									),
+									child: Icon(icon, color: color, size: 22),
+								),
+								Text(title, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
+								Text(description, style: const TextStyle(color: Colors.black87)),
+								Row(
+									children: [
+										Text('Open', style: TextStyle(color: color, fontWeight: FontWeight.w600)),
+										const SizedBox(width: 4),
+										Icon(Icons.arrow_forward_rounded, color: color, size: 16),
+									],
+								),
+							],
+						),
 					),
 				),
 			),

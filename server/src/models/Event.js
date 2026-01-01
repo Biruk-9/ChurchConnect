@@ -6,7 +6,6 @@ const EventSchema = new mongoose.Schema({
 	date: { type: Date, required: true },
 	time: { type: String, required: true }, // e.g., "18:30"
 	location: { type: String },
-	createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
 }, { timestamps: true });
 
 module.exports = mongoose.model('Event', EventSchema);

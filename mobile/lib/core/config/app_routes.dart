@@ -1,4 +1,4 @@
-import 'package:flutter/widgets.dart';
+import 'package:flutter/material.dart';
 import '../../features/home/home_screen.dart';
 import '../../features/health/health_screen.dart';
 import '../../features/announcements/announcement_screen.dart';
@@ -8,10 +8,10 @@ import '../../features/resources/public_resources_screen.dart';
 import '../../features/resources/member_resources_screen.dart';
 import '../../features/auth/login_screen.dart';
 import '../../features/admin/admin_dashboard.dart';
-import '../../features/admin/manage_announcements.dart';
-import '../../features/admin/manage_events.dart';
-import '../../features/admin/manage_resources.dart';
-import '../../features/admin/manage_users.dart';
+import '../../features/admin/announcement_manager.dart';
+import '../../features/admin/event_manager.dart';
+import '../../features/admin/resource_manager.dart';
+import '../../features/admin/user_manager.dart';
 
 class AppRoutes {
 	static const String home = '/';
@@ -39,9 +39,37 @@ class AppRoutes {
 				memberResources: (_) => const MemberResourcesScreen(),
 				login: (_) => const LoginScreen(),
 				admin: (_) => const AdminDashboard(),
-				manageAnnouncements: (_) => const ManageAnnouncements(),
-				manageEvents: (_) => const ManageEvents(),
-				manageResources: (_) => const ManageResources(),
-				manageUsers: (_) => const ManageUsers(),
+				manageAnnouncements: (_) => Scaffold(
+					appBar: AppBar(title: const Text('Manage Announcements')),
+					body: SingleChildScrollView(
+						physics: const AlwaysScrollableScrollPhysics(),
+						padding: const EdgeInsets.all(16),
+						child: Column(children: const [AnnouncementManager()]),
+					),
+				),
+				manageEvents: (_) => Scaffold(
+					appBar: AppBar(title: const Text('Manage Events')),
+					body: SingleChildScrollView(
+						physics: const AlwaysScrollableScrollPhysics(),
+						padding: const EdgeInsets.all(16),
+						child: Column(children: const [EventManager()]),
+					),
+				),
+				manageResources: (_) => Scaffold(
+					appBar: AppBar(title: const Text('Manage Resources')),
+					body: SingleChildScrollView(
+						physics: const AlwaysScrollableScrollPhysics(),
+						padding: const EdgeInsets.all(16),
+						child: Column(children: const [ResourceManager()]),
+					),
+				),
+				manageUsers: (_) => Scaffold(
+					appBar: AppBar(title: const Text('Manage Users')),
+					body: SingleChildScrollView(
+						physics: const AlwaysScrollableScrollPhysics(),
+						padding: const EdgeInsets.all(16),
+						child: Column(children: const [UserManager()]),
+					),
+				),
 			};
 }
