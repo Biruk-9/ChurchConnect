@@ -14,16 +14,6 @@ class AnnouncementManager extends StatefulWidget {
   State<AnnouncementManager> createState() => _AnnouncementManagerState();
 }
 
-class _SectionHeader extends StatelessWidget {
-  const _SectionHeader({required this.title});
-  final String title;
-
-  @override
-  Widget build(BuildContext context) {
-    return Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold));
-  }
-}
-
 class _CardShell extends StatelessWidget {
   const _CardShell({required this.title, required this.subtitle, required this.child});
   final String title;

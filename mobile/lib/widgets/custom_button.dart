@@ -5,6 +5,9 @@ class CustomButton extends StatelessWidget {
 	final VoidCallback? onPressed;
 	final bool loading;
 	final bool expanded;
+	final Color? backgroundColor;
+	final Color? foregroundColor;
+	final double? elevation;
 
 	const CustomButton({
 		super.key,
@@ -12,11 +15,19 @@ class CustomButton extends StatelessWidget {
 		this.onPressed,
 		this.loading = false,
 		this.expanded = true,
+		this.backgroundColor,
+		this.foregroundColor,
+		this.elevation,
 	});
 
 	@override
 	Widget build(BuildContext context) {
 		final btn = ElevatedButton(
+			style: ElevatedButton.styleFrom(
+				backgroundColor: backgroundColor,
+				foregroundColor: foregroundColor,
+				elevation: elevation,
+			),
 			onPressed: loading ? null : onPressed,
 			child: loading
 					? const SizedBox(
@@ -24,7 +35,7 @@ class CustomButton extends StatelessWidget {
 							height: 18,
 							child: CircularProgressIndicator(strokeWidth: 2),
 						)
-					: Text(label),
+				: Text(label),
 		);
 
 		if (expanded) {

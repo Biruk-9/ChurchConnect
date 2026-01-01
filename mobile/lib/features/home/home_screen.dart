@@ -4,6 +4,7 @@ import '../../core/services/auth_service.dart';
 import '../../features/bible_verse/verse_service.dart';
 import '../../widgets/error_message.dart';
 import '../../widgets/loading_indicator.dart';
+import '../bible_verse/verse_model.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -13,10 +14,9 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  String? _error;
   bool _verseLoading = true;
   String? _verseError;
-  Map<String, dynamic>? _verse;
+  Verse? _verse;
 
   @override
   void initState() {
@@ -57,7 +57,8 @@ class _HomeScreenState extends State<HomeScreen> {
         Navigator.of(context).pushNamed(route);
       }
     } catch (e) {
-      setState(() => _error = e.toString());
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString())));
     }
   }
 
@@ -78,14 +79,14 @@ class _HomeScreenState extends State<HomeScreen> {
         child: ListView.separated(
           padding: const EdgeInsets.all(16),
           itemCount: items.length + 1,
-          separatorBuilder: (_, __) => const SizedBox(height: 12),
+          separatorBuilder: (_, index) => const SizedBox(height: 12),
           itemBuilder: (context, index) {
             if (index == 0) {
               return _buildVerseCard(context);
             }
             final item = items[index - 1];
-            return ListTile(
-              tileColor: Theme.of(context).colorScheme.surfaceVariant,
+              return ListTile(
+              tileColor: Theme.of(context).colorScheme.surfaceContainerHighest,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               leading: Icon(item.icon),
               title: Text(item.title),
@@ -99,7 +100,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildVerseCard(BuildContext context) {
-    final surface = Theme.of(context).colorScheme.surfaceVariant;
+    final surface = Theme.of(context).colorScheme.surfaceContainerHighest;
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -127,10 +128,10 @@ class _HomeScreenState extends State<HomeScreen> {
             ErrorMessage(message: _verseError!, onRetry: _loadVerse)
           else if (_verse == null)
             const Text('No verse available right now')
-          else ...[
-            Text(_verse?['ref']?.toString() ?? '', style: Theme.of(context).textTheme.titleMedium),
+          else if (_verse != null) ...[
+            Text(_verse!.ref, style: Theme.of(context).textTheme.titleMedium),
             const SizedBox(height: 6),
-            Text(_verse?['text']?.toString() ?? ''),
+            Text(_verse!.text),
           ],
         ],
       ),

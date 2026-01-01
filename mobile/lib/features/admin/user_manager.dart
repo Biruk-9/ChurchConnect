@@ -319,7 +319,7 @@ class _UserManagerState extends State<UserManager> {
                         Switch(
                           value: isActive,
                           onChanged: _saving ? null : (v) => _toggleActive(id, v),
-                          activeColor: Colors.green,
+                          activeThumbColor: Colors.green,
                         ),
                         IconButton(icon: const Icon(Icons.edit_outlined), onPressed: () => _startEdit(item)),
                         IconButton(icon: const Icon(Icons.delete_outline, color: Colors.red), onPressed: _saving ? null : () => _confirmDelete(id)),

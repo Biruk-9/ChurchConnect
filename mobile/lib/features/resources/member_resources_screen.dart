@@ -82,7 +82,7 @@ class _MemberResourcesScreenState extends State<MemberResourcesScreen> {
 
 		return ListView.separated(
 			itemCount: _items.length,
-			separatorBuilder: (_, __) => const Divider(height: 16),
+			separatorBuilder: (_, index) => const Divider(height: 16),
 			itemBuilder: (_, index) {
 				final item = _items[index];
 				final title = item['title']?.toString() ?? 'Untitled';

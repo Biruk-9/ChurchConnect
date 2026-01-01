@@ -5,6 +5,7 @@ import '../config/api_config.dart';
 import '../utils/constants.dart';
 import 'api_service.dart';
 import 'auth_service.dart';
+import '../../features/bible_verse/verse_model.dart';
 
 class AdminService {
   static Future<String> _requireToken() async {
@@ -99,7 +100,7 @@ class AdminService {
   }
 
   // Verses of the Day
-  static Future<List<Map<String, dynamic>>> fetchVerses() async {
+  static Future<List<Verse>> fetchVerses() async {
     final token = await _requireToken();
     final resp = await http
       .get(
@@ -107,7 +108,8 @@ class AdminService {
         headers: _authHeaders(token),
       )
       .timeout(AppConstants.networkTimeout);
-    return _asList(_decode(resp));
+    final list = _asList(_decode(resp));
+    return list.map((e) => Verse.fromJson(e)).toList();
   }
 
   static Future<Map<String, dynamic>> createVerse({

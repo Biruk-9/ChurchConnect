@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../widgets/loading_indicator.dart';
 import '../../widgets/error_message.dart';
 import 'verse_service.dart';
+import 'verse_model.dart';
 
 class VerseScreen extends StatefulWidget {
 	const VerseScreen({super.key});
@@ -13,7 +14,7 @@ class VerseScreen extends StatefulWidget {
 class _VerseScreenState extends State<VerseScreen> {
 	bool _loading = true;
 	String? _error;
-	Map<String, dynamic>? _verse;
+	Verse? _verse;
 
 	@override
 	void initState() {
@@ -58,8 +59,8 @@ class _VerseScreenState extends State<VerseScreen> {
 		if (_error != null) return ErrorMessage(message: _error!, onRetry: _load);
 		if (_verse == null) return const Center(child: Text('No verse available'));
 
-		final ref = _verse?['ref']?.toString() ?? 'Verse';
-		final text = _verse?['text']?.toString() ?? '';
+		final ref = _verse?.ref ?? 'Verse';
+		final text = _verse?.text ?? '';
 
 		return Column(
 			crossAxisAlignment: CrossAxisAlignment.start,

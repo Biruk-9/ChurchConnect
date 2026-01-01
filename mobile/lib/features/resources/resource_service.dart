@@ -1,6 +1,5 @@
 import '../../core/services/api_service.dart';
 import '../../core/services/auth_service.dart';
-import '../../core/services/api_service.dart' show ApiException;
 
 class ResourceService {
 	static const String _publicPath = '/api/public/resources';
@@ -42,9 +41,9 @@ class ResourceException implements Exception {
 }
 
 class ResourceAuthRequired extends ResourceException {
-	ResourceAuthRequired(String message) : super(message);
+	ResourceAuthRequired(super.message);
 }
 
 class ResourceForbidden extends ResourceException {
-	ResourceForbidden(String message) : super(message);
+	ResourceForbidden(super.message);
 }

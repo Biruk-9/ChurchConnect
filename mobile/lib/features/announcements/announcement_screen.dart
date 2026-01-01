@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../widgets/loading_indicator.dart';
 import '../../widgets/error_message.dart';
 import 'announcement_service.dart';
+import 'announcement_model.dart';
 
 class AnnouncementScreen extends StatefulWidget {
 	const AnnouncementScreen({super.key});
@@ -13,7 +14,7 @@ class AnnouncementScreen extends StatefulWidget {
 class _AnnouncementScreenState extends State<AnnouncementScreen> {
 	bool _loading = true;
 	String? _error;
-	List<Map<String, dynamic>> _items = const [];
+	List<Announcement> _items = const [];
 
 	@override
 	void initState() {
@@ -60,12 +61,12 @@ class _AnnouncementScreenState extends State<AnnouncementScreen> {
 
 		return ListView.separated(
 			itemCount: _items.length,
-			separatorBuilder: (_, __) => const Divider(height: 16),
+			separatorBuilder: (_, index) => const Divider(height: 16),
 			itemBuilder: (_, index) {
 				final item = _items[index];
-				final title = item['title']?.toString() ?? 'Untitled';
-				final body = item['body']?.toString() ?? item['description']?.toString() ?? '';
-				final date = item['date']?.toString() ?? item['createdAt']?.toString();
+				final title = item.title.isNotEmpty ? item.title : 'Untitled';
+				final body = item.content;
+				final date = item.createdAt?.toIso8601String();
 				return ListTile(
 					title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
 					subtitle: Column(

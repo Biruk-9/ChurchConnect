@@ -256,7 +256,7 @@ class _ResourceManagerState extends State<ResourceManager> {
                 ),
                 const SizedBox(height: 8),
                 DropdownButtonFormField<String>(
-                  value: _category,
+                  initialValue: _category,
                   decoration: const InputDecoration(labelText: 'Category'),
                   items: const [
                     DropdownMenuItem(value: 'pdf', child: Text('PDF')),
@@ -267,7 +267,7 @@ class _ResourceManagerState extends State<ResourceManager> {
                 ),
                 const SizedBox(height: 8),
                 DropdownButtonFormField<String>(
-                  value: _accessLevel,
+                  initialValue: _accessLevel,
                   decoration: const InputDecoration(labelText: 'Access'),
                   items: const [
                     DropdownMenuItem(value: 'public', child: Text('Public')),

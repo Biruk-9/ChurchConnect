@@ -1,14 +1,15 @@
 import '../../core/services/api_service.dart';
+import 'announcement_model.dart';
 
 class AnnouncementService {
 	static const String _publicPath = '/api/public/announcements';
 
 	/// Fetch public announcements list.
-	static Future<List<Map<String, dynamic>>> fetchPublic() async {
+	static Future<List<Announcement>> fetchPublic() async {
 		final resp = await ApiService.get(_publicPath);
 		final data = resp['data'] ?? resp['announcements'] ?? resp['items'] ?? resp;
 		if (data is List) {
-			return data.cast<Map<String, dynamic>>();
+			return data.map((e) => Announcement.fromJson(e as Map<String, dynamic>)).toList();
 		}
 		return [];
 	}

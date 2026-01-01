@@ -135,7 +135,9 @@ class _AdminDashboardState extends State<AdminDashboard> {
 									await AuthService.logout();
 									if (!mounted) return;
 									await Navigator.of(context).pushNamed(AppRoutes.login);
+									if (!mounted) return;
 									final role = await AuthService.getRole();
+									if (!mounted) return;
 									setState(() {
 										_authed = role != null;
 										_isAdmin = role == 'admin';
@@ -325,7 +327,7 @@ class _StatCard extends StatelessWidget {
 	@override
 	Widget build(BuildContext context) {
 		return Card(
-			color: color.withOpacity(0.08),
+			color: color.withValues(alpha: 0.08),
 			shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
 			child: SizedBox(
 				width: 180,
@@ -382,7 +384,7 @@ class _ManagementCard extends StatelessWidget {
 								Container(
 									padding: const EdgeInsets.all(8),
 									decoration: BoxDecoration(
-										color: color.withOpacity(0.12),
+										color: color.withValues(alpha: 0.12),
 										borderRadius: BorderRadius.circular(10),
 									),
 									child: Icon(icon, color: color, size: 22),

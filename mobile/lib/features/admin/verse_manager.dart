@@ -3,6 +3,7 @@ import '../../core/services/admin_service.dart';
 import '../../widgets/custom_button.dart';
 import '../../widgets/error_message.dart';
 import '../../widgets/loading_indicator.dart';
+import '../bible_verse/verse_model.dart';
 
 class VerseManager extends StatefulWidget {
   const VerseManager({super.key});
@@ -48,7 +49,7 @@ class _VerseManagerState extends State<VerseManager> {
   bool _saving = false;
   String? _error;
   String? _editingId;
-  List<Map<String, dynamic>> _items = [];
+  List<Verse> _items = [];
   DateTime _selectedDate = DateTime.now();
 
   @override
@@ -104,13 +105,12 @@ class _VerseManagerState extends State<VerseManager> {
     }
   }
 
-  void _startEdit(Map<String, dynamic> item) {
-    final dateStr = item['date']?.toString();
-    final parsedDate = dateStr != null ? DateTime.tryParse(dateStr) : null;
+  void _startEdit(Verse item) {
+    final parsedDate = item.date;
     setState(() {
-      _editingId = item['_id']?.toString();
-      _refCtrl.text = item['ref']?.toString() ?? '';
-      _textCtrl.text = item['text']?.toString() ?? '';
+      _editingId = item.id;
+      _refCtrl.text = item.ref;
+      _textCtrl.text = item.text;
       _selectedDate = parsedDate ?? DateTime.now();
       _syncDateField();
     });
@@ -246,12 +246,12 @@ class _VerseManagerState extends State<VerseManager> {
                 itemCount: _items.length,
                 itemBuilder: (context, index) {
                   final item = _items[index];
-                  final id = item['_id']?.toString() ?? '';
-                  final ref = item['ref']?.toString() ?? 'Reference';
-                  final text = item['text']?.toString() ?? '';
-                  final dateStr = item['date']?.toString();
-                  final posted = item['posted'] == true;
-                  final subtitle = '${dateStr ?? ''}${posted ? ' • Posted' : ''}';
+                  final id = item.id;
+                  final ref = item.ref;
+                  final text = item.text;
+                  final dateStr = item.date != null ? item.date!.toIso8601String().split('T').first : '';
+                  final posted = item.posted;
+                  final subtitle = [if (dateStr.isNotEmpty) dateStr, if (posted) 'Posted'].join(' • ');
                   return ListTile(
                     contentPadding: EdgeInsets.zero,
                     title: Text(ref, style: const TextStyle(fontWeight: FontWeight.w600)),
@@ -267,7 +267,7 @@ class _VerseManagerState extends State<VerseManager> {
                         ),
                         IconButton(
                           icon: const Icon(Icons.delete_outline, color: Colors.red),
-                          onPressed: _saving || posted ? null : () => _delete(id),
+                          onPressed: _saving || posted || id == null ? null : () => _delete(id),
                           tooltip: posted ? 'Already posted' : 'Delete',
                         ),
                       ],
