@@ -18,11 +18,12 @@ class AuthService {
 		final data = (resp['data'] is Map) ? resp['data'] as Map : resp;
 		final token = data['token']?.toString();
 		final role = data['role']?.toString();
+		final name = data['name']?.toString();
 		if (token == null || token.isEmpty) {
 			throw AuthException('Missing token from server');
 		}
 
-		await StorageService.saveSession(token: token, role: role);
+		await StorageService.saveSession(token: token, role: role, name: name);
 		return token;
 	}
 
@@ -38,6 +39,8 @@ class AuthService {
 	static Future<String?> getToken() => StorageService.getToken();
 
 	static Future<String?> getRole() => StorageService.getRole();
+
+	static Future<String?> getUserName() => StorageService.getUserName();
 }
 
 class AuthException implements Exception {

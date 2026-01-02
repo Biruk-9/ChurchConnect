@@ -339,13 +339,14 @@ class AdminService {
     required String email,
     required String password,
     bool isActive = true,
+    String role = 'member',
   }) async {
     final token = await _requireToken();
     final resp = await http
       .post(
         Uri.parse('${ApiConfig.baseUrl}${ApiConfig.adminBasePath}/users'),
         headers: _authHeaders(token),
-        body: jsonEncode({'name': name, 'email': email, 'password': password, 'isActive': isActive}),
+        body: jsonEncode({'name': name, 'email': email, 'password': password, 'isActive': isActive, 'role': role}),
       )
       .timeout(AppConstants.networkTimeout);
     return _decode(resp);
@@ -357,6 +358,7 @@ class AdminService {
     String? email,
     String? password,
     bool? isActive,
+    String? role,
   }) async {
     final token = await _requireToken();
     final resp = await http
@@ -368,6 +370,7 @@ class AdminService {
           if (email != null) 'email': email,
           if (password != null && password.isNotEmpty) 'password': password,
           if (isActive != null) 'isActive': isActive,
+          if (role != null) 'role': role,
         }),
       )
       .timeout(AppConstants.networkTimeout);
