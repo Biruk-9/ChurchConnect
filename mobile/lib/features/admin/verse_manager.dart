@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../core/services/admin_service.dart';
 import '../../widgets/error_message.dart';
 import '../../widgets/loading_indicator.dart';
+import '../../core/utils/search_utils.dart';
 import '../bible_verse/verse_model.dart';
 
 class _CardShell extends StatelessWidget {
@@ -122,6 +123,7 @@ class _VerseManagerState extends State<VerseManager> {
   bool _saving = false;
   String? _error;
   String? _editingId;
+  String _query = '';
   List<Verse> _items = [];
   DateTime _selectedDate = DateTime.now();
 
@@ -169,7 +171,16 @@ class _VerseManagerState extends State<VerseManager> {
     try {
       final data = await AdminService.fetchVerses();
       if (!mounted) return;
-      setState(() => _items = data);
+      final sorted = List<Verse>.from(data)
+        ..sort((a, b) {
+          final ad = a.date;
+          final bd = b.date;
+          if (ad == null && bd == null) return 0;
+          if (ad == null) return 1; // nulls last
+          if (bd == null) return -1;
+          return bd.compareTo(ad); // newest first
+        });
+      setState(() => _items = sorted);
     } catch (e) {
       if (!mounted) return;
       setState(() => _error = e.toString());
@@ -285,7 +296,7 @@ class _VerseManagerState extends State<VerseManager> {
                 child: LoadingIndicator(message: 'Loading verses...'),
               ),
             )
-          else if (_items.isEmpty)
+          else if (_items.isEmpty && _query.isEmpty)
             Container(
               padding: const EdgeInsets.all(40),
               decoration: BoxDecoration(
@@ -317,20 +328,73 @@ class _VerseManagerState extends State<VerseManager> {
               ),
             )
           else ...[
-            _CardShell(
-              title: 'Scheduled Verses',
-              subtitle: '${_items.length} verse(s) planned',
-              child: Column(
-                children: [
-                  ..._items.map((item) => _buildVerseCard(item)),
-                ],
-              ),
+            Builder(
+              builder: (_) {
+                final filtered = _filterVerses();
+                return _CardShell(
+                  title: 'Scheduled Verses',
+                  subtitle: '${filtered.length} verse(s) planned',
+                  child: Column(
+                    children: [
+                      _buildSearchField(),
+                      const SizedBox(height: 12),
+                      if (filtered.isEmpty)
+                        Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          child: Text('No verses match your search', style: TextStyle(color: Colors.grey.shade700)),
+                        )
+                      else ...filtered.map((item) => _buildVerseCard(item)),
+                  ],
+                ),
+                );
+              },
             ),
           ],
         ],
       ],
     );
   }
+
+      Widget _buildSearchField() {
+        return TextField(
+          onChanged: (value) => setState(() => _query = value.trim()),
+          decoration: InputDecoration(
+            prefixIcon: const Icon(Icons.search_rounded),
+            hintText: 'Search verses by reference or text...',
+            filled: true,
+            fillColor: Colors.grey.shade100,
+            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14),
+              borderSide: BorderSide(color: Colors.grey.shade300),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14),
+              borderSide: BorderSide(color: Colors.grey.shade300),
+            ),
+            focusedBorder: const OutlineInputBorder(
+              borderRadius: BorderRadius.all(Radius.circular(14)),
+              borderSide: BorderSide(color: Color(0xFF7C3AED)),
+            ),
+            suffixIcon: _query.isNotEmpty
+              ? IconButton(
+                icon: const Icon(Icons.close_rounded),
+                onPressed: () => setState(() => _query = ''),
+              )
+              : null,
+          ),
+        );
+      }
+
+      List<Verse> _filterVerses() {
+        return SearchUtils.filterByQuery(_items, _query, (item, q) {
+          final ref = item.ref.toLowerCase();
+          final text = item.text.toLowerCase();
+          final date = item.date != null ? _formatDisplayDate(item.date!).toLowerCase() : '';
+          final status = item.posted ? 'posted' : 'scheduled';
+          return ref.contains(q) || text.contains(q) || date.contains(q) || status.contains(q);
+        });
+      }
 
   Widget _buildForm({required bool inDialog}) {
     return Form(

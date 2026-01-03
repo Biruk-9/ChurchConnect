@@ -3,16 +3,21 @@ import 'package:intl/intl.dart';
 import '../../core/services/admin_service.dart';
 import '../../widgets/error_message.dart';
 import '../../widgets/loading_indicator.dart';
+import '../../core/utils/search_utils.dart';
+
+enum EventListMode { all, upcoming, past }
 
 class EventManager extends StatefulWidget {
   const EventManager({
     super.key,
     this.showForm = true,
     this.showList = true,
+    this.listMode = EventListMode.all,
   });
 
   final bool showForm;
   final bool showList;
+  final EventListMode listMode;
 
   @override
   State<EventManager> createState() => _EventManagerState();
@@ -44,16 +49,9 @@ class _CardShell extends StatelessWidget {
           ],
         ),
         borderRadius: BorderRadius.circular(28),
-        border: Border.all(
-          color: const Color.fromARGB(255, 0, 0, 0).withOpacity(0.4),
-          width: 1.5,
-        ),
+        border: Border.all(color: const Color.fromARGB(255, 0, 0, 0).withOpacity(0.4), width: 1.5),
         boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.12),
-            blurRadius: 30,
-            offset: const Offset(0, 16),
-          ),
+          BoxShadow(color: Colors.black.withOpacity(0.12), blurRadius: 30, offset: const Offset(0, 16)),
         ],
       ),
       child: Padding(
@@ -67,9 +65,7 @@ class _CardShell extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        colors: [Color(0xFF7C3AED), Color(0xFF6D28D9)],
-                      ),
+                      gradient: const LinearGradient(colors: [Color(0xFF7C3AED), Color(0xFF6D28D9)]),
                       shape: BoxShape.circle,
                       boxShadow: [
                         BoxShadow(
@@ -79,11 +75,7 @@ class _CardShell extends StatelessWidget {
                         ),
                       ],
                     ),
-                    child: const Icon(
-                      Icons.event_available_rounded,
-                      color: Colors.white,
-                      size: 24,
-                    ),
+                    child: const Icon(Icons.event_available_rounded, color: Colors.white, size: 24),
                   ),
                   const SizedBox(width: 16),
                   Expanded(
@@ -92,20 +84,12 @@ class _CardShell extends StatelessWidget {
                       children: [
                         Text(
                           title,
-                          style: const TextStyle(
-                            fontSize: 22,
-                            fontWeight: FontWeight.w800,
-                            color: Color(0xFF1F2937),
-                          ),
+                          style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: Color(0xFF1F2937)),
                         ),
                         const SizedBox(height: 4),
                         Text(
                           subtitle,
-                          style: TextStyle(
-                            fontSize: 15,
-                            color: Colors.grey.shade600,
-                            fontWeight: FontWeight.w500,
-                          ),
+                          style: TextStyle(fontSize: 15, color: Colors.grey.shade600, fontWeight: FontWeight.w500),
                         ),
                       ],
                     ),
@@ -134,7 +118,10 @@ class _EventManagerState extends State<EventManager> {
   bool _saving = false;
   String? _error;
   String? _editingId;
+  String _query = '';
   List<Map<String, dynamic>> _items = [];
+  List<Map<String, dynamic>> _upcomingItems = [];
+  List<Map<String, dynamic>> _pastItems = [];
 
   DateTime _selectedDate = DateTime.now();
   TimeOfDay _selectedTime = const TimeOfDay(hour: 18, minute: 0);
@@ -164,9 +151,14 @@ class _EventManagerState extends State<EventManager> {
     try {
       final data = await AdminService.fetchEvents();
       final sorted = List<Map<String, dynamic>>.from(data)
-        ..sort((a, b) => _dateFrom(b).compareTo(_dateFrom(a)));
+        ..sort((a, b) => _eventDateTime(b).compareTo(_eventDateTime(a)));
+      final split = _splitEvents(sorted);
       if (!mounted) return;
-      setState(() => _items = sorted);
+      setState(() {
+        _items = sorted;
+        _upcomingItems = split.$1;
+        _pastItems = split.$2;
+      });
     } catch (e) {
       if (!mounted) return;
       setState(() => _error = e.toString());
@@ -180,7 +172,7 @@ class _EventManagerState extends State<EventManager> {
     final parsedTime = _tryParseTime(item['time']?.toString() ?? '');
 
     setState(() {
-      _editingId = item['_id']?.toString();
+      _editingId = _itemId(item);
       _titleCtrl.text = item['title']?.toString() ?? '';
       _descCtrl.text = item['description']?.toString() ?? '';
       _selectedDate = parsedDate ?? DateTime.now();
@@ -278,10 +270,7 @@ class _EventManagerState extends State<EventManager> {
               const Text('Edit Event', style: TextStyle(fontWeight: FontWeight.w700)),
             ],
           ),
-          content: SizedBox(
-            width: double.maxFinite,
-            child: SingleChildScrollView(child: _buildForm(inDialog: true)),
-          ),
+          content: SizedBox(width: double.maxFinite, child: SingleChildScrollView(child: _buildForm(inDialog: true))),
           actions: [
             TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
             ElevatedButton(
@@ -337,12 +326,20 @@ class _EventManagerState extends State<EventManager> {
 
   TimeOfDay? _tryParseTime(String value) {
     final parts = value.split(':');
-    if (parts.length != 2) return null;
-    final hour = int.tryParse(parts[0]);
-    final minute = int.tryParse(parts[1]);
-    if (hour == null || minute == null) return null;
-    if (hour < 0 || hour > 23 || minute < 0 || minute > 59) return null;
-    return TimeOfDay(hour: hour, minute: minute);
+    if (parts.length == 2) {
+      final hour = int.tryParse(parts[0]);
+      final minute = int.tryParse(parts[1]);
+      if (hour != null && minute != null && hour >= 0 && hour <= 23 && minute >= 0 && minute <= 59) {
+        return TimeOfDay(hour: hour, minute: minute);
+      }
+    }
+    // Fallback for formats like "6:00 PM"
+    try {
+      final parsed = DateFormat.jm().parseStrict(value);
+      return TimeOfDay(hour: parsed.hour, minute: parsed.minute);
+    } catch (_) {
+      return null;
+    }
   }
 
   Future<void> _pickDate() async {
@@ -354,10 +351,7 @@ class _EventManagerState extends State<EventManager> {
       lastDate: DateTime(2100),
       builder: (context, child) => Theme(
         data: Theme.of(context).copyWith(
-          colorScheme: const ColorScheme.light(
-            primary: Color(0xFF7C3AED),
-            onPrimary: Colors.white,
-          ),
+          colorScheme: const ColorScheme.light(primary: Color(0xFF7C3AED), onPrimary: Colors.white),
         ),
         child: child!,
       ),
@@ -377,10 +371,7 @@ class _EventManagerState extends State<EventManager> {
       initialTime: _selectedTime,
       builder: (context, child) => Theme(
         data: Theme.of(context).copyWith(
-          colorScheme: const ColorScheme.light(
-            primary: Color(0xFF7C3AED),
-            onPrimary: Colors.white,
-          ),
+          colorScheme: const ColorScheme.light(primary: Color(0xFF7C3AED), onPrimary: Colors.white),
         ),
         child: child!,
       ),
@@ -409,58 +400,75 @@ class _EventManagerState extends State<EventManager> {
           ),
           const SizedBox(height: 24),
         ],
+        if (showList)
+          Builder(
+            builder: (context) {
+              final baseItems = _filteredItems;
+              final filtered = _filterByQuery(baseItems);
+              final listTitle = _listTitle;
+              final listSubtitle = _listSubtitle(filtered.length);
+              final emptyText = _emptyText;
 
-        if (showList) ...[
-          if (_loading)
-            const Center(
-              child: Padding(
-                padding: EdgeInsets.all(60),
-                child: LoadingIndicator(message: 'Loading events...'),
-              ),
-            )
-          else if (_items.isEmpty)
-            Container(
-              padding: const EdgeInsets.all(40),
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.6),
-                borderRadius: BorderRadius.circular(24),
-                border: Border.all(color: Colors.grey.shade200),
-              ),
-              child: Column(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(20),
-                    decoration: BoxDecoration(
-                      gradient: const LinearGradient(colors: [Color(0xFF7C3AED), Color(0xFF6D28D9)]),
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(Icons.event_busy_rounded, color: Colors.white, size: 40),
+              if (_loading) {
+                return const Center(
+                  child: Padding(
+                    padding: EdgeInsets.all(60),
+                    child: LoadingIndicator(message: 'Loading events...'),
                   ),
-                  const SizedBox(height: 20),
-                  const Text(
-                    'No events scheduled yet',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: Color(0xFF374151)),
+                );
+              }
+
+              if (baseItems.isEmpty && _query.isEmpty) {
+                return Container(
+                  padding: const EdgeInsets.all(40),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.6),
+                    borderRadius: BorderRadius.circular(24),
+                    border: Border.all(color: Colors.grey.shade200),
                   ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Create your first event to get started',
-                    style: TextStyle(color: Colors.grey.shade600),
+                  child: Column(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(20),
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(colors: [Color(0xFF7C3AED), Color(0xFF6D28D9)]),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(Icons.event_busy_rounded, color: Colors.white, size: 40),
+                      ),
+                      const SizedBox(height: 20),
+                      Text(
+                        emptyText,
+                        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: Color(0xFF374151)),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Create or update events to see them listed',
+                        style: TextStyle(color: Colors.grey.shade600),
+                      ),
+                    ],
                   ),
-                ],
-              ),
-            )
-          else ...[
-            _CardShell(
-              title: 'Upcoming Events',
-              subtitle: '${_items.length} events scheduled',
-              child: Column(
-                children: [
-                  ..._items.map((item) => _buildEventCard(item)),
-                ],
-              ),
-            ),
-          ],
-        ],
+                );
+              }
+
+              return _CardShell(
+                title: listTitle,
+                subtitle: listSubtitle,
+                child: Column(
+                  children: [
+                    _buildSearchField(),
+                    const SizedBox(height: 12),
+                    if (filtered.isEmpty)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        child: Text('No events match your search', style: TextStyle(color: Colors.grey.shade700)),
+                      )
+                    else ...filtered.map((item) => _buildEventCard(item)),
+                  ],
+                ),
+              );
+            },
+          ),
       ],
     );
   }
@@ -477,19 +485,12 @@ class _EventManagerState extends State<EventManager> {
             validator: (v) => _safeTrim(v).isEmpty ? 'Title required' : null,
           ),
           const SizedBox(height: 16),
-          _buildStyledTextField(
-            controller: _descCtrl,
-            label: 'Description',
-            icon: Icons.description_outlined,
-            maxLines: 4,
-          ),
-          const SizedBox(height: 16),
           Row(
             children: [
               Expanded(
                 child: _buildStyledTextField(
                   controller: _dateCtrl,
-                  label: 'Date',
+                  label: 'Date and Time',
                   icon: Icons.calendar_today_rounded,
                   readOnly: true,
                   onTap: _pickDate,
@@ -514,6 +515,13 @@ class _EventManagerState extends State<EventManager> {
             controller: _locationCtrl,
             label: 'Location',
             icon: Icons.location_on_outlined,
+          ),
+          const SizedBox(height: 24),
+          _buildStyledTextField(
+            controller: _descCtrl,
+            label: 'Description',
+            icon: Icons.description_outlined,
+            maxLines: 4,
           ),
           const SizedBox(height: 24),
           if (_error != null) ...[
@@ -567,10 +575,7 @@ class _EventManagerState extends State<EventManager> {
                           ? const SizedBox(
                               height: 26,
                               width: 26,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 3,
-                                color: Colors.white,
-                              ),
+                              child: CircularProgressIndicator(strokeWidth: 3, color: Colors.white),
                             )
                           : Text(
                               _editingId == null ? 'Create Event' : 'Update Event',
@@ -589,10 +594,7 @@ class _EventManagerState extends State<EventManager> {
                       Navigator.of(context).pop();
                       _resetForm();
                     },
-                    style: OutlinedButton.styleFrom(
-                      minimumSize: const Size(96, 52),
-                      padding: const EdgeInsets.symmetric(horizontal: 14),
-                    ),
+                    style: OutlinedButton.styleFrom(minimumSize: const Size(96, 52), padding: const EdgeInsets.symmetric(horizontal: 14)),
                     child: const Text('Cancel'),
                   ),
                 )
@@ -665,16 +667,109 @@ class _EventManagerState extends State<EventManager> {
 
   String _safeTrim(String? value) => value?.trim() ?? '';
 
+  List<Map<String, dynamic>> get _filteredItems {
+    switch (widget.listMode) {
+      case EventListMode.upcoming:
+        return _upcomingItems;
+      case EventListMode.past:
+        return _pastItems;
+      case EventListMode.all:
+      default:
+        return _items;
+    }
+  }
+
+  String get _listTitle {
+    switch (widget.listMode) {
+      case EventListMode.upcoming:
+        return 'Upcoming Events';
+      case EventListMode.past:
+        return 'Previous Events';
+      case EventListMode.all:
+      default:
+        return 'Events';
+    }
+  }
+
+  String _listSubtitle(int count) {
+    switch (widget.listMode) {
+      case EventListMode.upcoming:
+        return '$count upcoming event${count == 1 ? '' : 's'}';
+      case EventListMode.past:
+        return '$count previous event${count == 1 ? '' : 's'}';
+      case EventListMode.all:
+      default:
+        return '$count total event${count == 1 ? '' : 's'}';
+    }
+  }
+
+  Widget _buildSearchField() {
+    return TextField(
+      onChanged: (value) => setState(() => _query = value.trim()),
+      decoration: InputDecoration(
+        prefixIcon: const Icon(Icons.search_rounded),
+        hintText: 'Search events...',
+        filled: true,
+        fillColor: Colors.grey.shade100,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: BorderSide(color: Colors.grey.shade300),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: BorderSide(color: Colors.grey.shade300),
+        ),
+        focusedBorder: const OutlineInputBorder(
+          borderRadius: BorderRadius.all(Radius.circular(14)),
+          borderSide: BorderSide(color: Color(0xFF7C3AED)),
+        ),
+        suffixIcon: _query.isNotEmpty
+          ? IconButton(
+            icon: const Icon(Icons.close_rounded),
+            onPressed: () => setState(() => _query = ''),
+          )
+          : null,
+      ),
+    );
+  }
+
+  List<Map<String, dynamic>> _filterByQuery(List<Map<String, dynamic>> items) {
+    return SearchUtils.filterByQuery(items, _query, (item, q) {
+      final title = (item['title'] ?? '').toString().toLowerCase();
+      final desc = (item['description'] ?? '').toString().toLowerCase();
+      final location = (item['location'] ?? '').toString().toLowerCase();
+      final dateLabel = _formatDisplayDate(item['date']?.toString() ?? '').toLowerCase();
+      final timeLabel = (item['time'] ?? '').toString().toLowerCase();
+      return title.contains(q) || desc.contains(q) || location.contains(q) || dateLabel.contains(q) || timeLabel.contains(q);
+    });
+  }
+
+  String get _emptyText {
+    switch (widget.listMode) {
+      case EventListMode.upcoming:
+        return 'No upcoming events';
+      case EventListMode.past:
+        return 'No previous events';
+      case EventListMode.all:
+      default:
+        return 'No events scheduled yet';
+    }
+  }
+
   Widget _buildEventCard(Map<String, dynamic> item) {
     final title = item['title']?.toString() ?? 'Untitled';
     final rawDate = item['date']?.toString() ?? '';
     final date = _formatDisplayDate(rawDate);
     final time = item['time']?.toString() ?? '';
     final location = item['location']?.toString();
-    final id = item['_id']?.toString() ?? '';
+    final id = _itemId(item);
     final description = item['description']?.toString() ?? '';
     final postedAt = _formatPostedAt(_dateFrom(item));
     final dateTimeText = [date, time].where((v) => v.isNotEmpty).join(' ');
+    final isPastList = widget.listMode == EventListMode.past;
+    final isPastEvent = _isPastEvent(item);
+    final isEditable = widget.listMode == EventListMode.upcoming && !isPastEvent;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
@@ -682,17 +777,11 @@ class _EventManagerState extends State<EventManager> {
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: const Color.fromARGB(255, 186, 182, 182)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.08),
-            blurRadius: 16,
-            offset: const Offset(0, 8),
-          ),
-        ],
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.08), blurRadius: 16, offset: const Offset(0, 8))],
       ),
       child: InkWell(
         borderRadius: BorderRadius.circular(20),
-        onTap: () => _startEdit(item),
+        onTap: isEditable ? () => _startEdit(item) : null,
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Row(
@@ -713,11 +802,7 @@ class _EventManagerState extends State<EventManager> {
                   children: [
                     Text(
                       title,
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w700,
-                        color: Color(0xFF1F2937),
-                      ),
+                      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: Color(0xFF1F2937)),
                     ),
                     if (dateTimeText.isNotEmpty) ...[
                       const SizedBox(height: 10),
@@ -725,10 +810,7 @@ class _EventManagerState extends State<EventManager> {
                         children: [
                           const Icon(Icons.calendar_today, size: 18, color: Color(0xFF6D28D9)),
                           const SizedBox(width: 8),
-                          Text(
-                            dateTimeText,
-                            style: TextStyle(color: Colors.grey.shade700, fontWeight: FontWeight.w600),
-                          ),
+                          Text(dateTimeText, style: TextStyle(color: Colors.grey.shade700, fontWeight: FontWeight.w600)),
                         ],
                       ),
                     ],
@@ -739,20 +821,14 @@ class _EventManagerState extends State<EventManager> {
                           const Icon(Icons.place_outlined, size: 18, color: Color(0xFF6D28D9)),
                           const SizedBox(width: 8),
                           Expanded(
-                            child: Text(
-                              location,
-                              style: TextStyle(color: Colors.grey.shade700, fontWeight: FontWeight.w600),
-                            ),
+                            child: Text(location, style: TextStyle(color: Colors.grey.shade700, fontWeight: FontWeight.w600)),
                           ),
                         ],
                       ),
                     ],
                     if (description.isNotEmpty) ...[
                       const SizedBox(height: 10),
-                      Text(
-                        description,
-                        style: TextStyle(color: Colors.grey.shade700, height: 1.4),
-                      ),
+                      Text(description, style: TextStyle(color: Colors.grey.shade700, height: 1.4)),
                     ],
                     const SizedBox(height: 12),
                     Align(
@@ -765,23 +841,31 @@ class _EventManagerState extends State<EventManager> {
                   ],
                 ),
               ),
-              Column(
-                children: [
-                  IconButton(
-                    icon: const Icon(Icons.edit_outlined, color: Color(0xFF7C3AED)),
-                    onPressed: () => _startEdit(item),
+              if (isEditable)
+                Column(
+                  children: [
+                    IconButton(icon: const Icon(Icons.edit_outlined, color: Color(0xFF7C3AED)), onPressed: () => _startEdit(item)),
+                    IconButton(icon: const Icon(Icons.delete_outline, color: Colors.redAccent), onPressed: _saving ? null : () => _delete(id)),
+                  ],
+                )
+              else if (isPastList || isPastEvent)
+                Padding(
+                  padding: const EdgeInsets.only(left: 8, top: 6),
+                  child: Text(
+                    'Past event',
+                    style: TextStyle(color: Colors.red.shade600, fontWeight: FontWeight.w800),
                   ),
-                  IconButton(
-                    icon: const Icon(Icons.delete_outline, color: Colors.redAccent),
-                    onPressed: _saving ? null : () => _delete(id),
-                  ),
-                ],
-              ),
+                ),
             ],
           ),
         ),
       ),
     );
+  }
+
+  bool _isPastEvent(Map<String, dynamic> item) {
+    final eventDate = _eventDateTime(item);
+    return eventDate.isBefore(DateTime.now());
   }
 
   String _formatDisplayDate(String date) {
@@ -791,6 +875,35 @@ class _EventManagerState extends State<EventManager> {
     final dd = parsed.day.toString().padLeft(2, '0');
     return '${parsed.year}/$mm/$dd';
   }
+
+  (List<Map<String, dynamic>>, List<Map<String, dynamic>>) _splitEvents(List<Map<String, dynamic>> items) {
+    final now = DateTime.now();
+    final upcoming = <Map<String, dynamic>>[];
+    final past = <Map<String, dynamic>>[];
+    for (final item in items) {
+      final date = _eventDateTime(item);
+      if (date.isBefore(now)) {
+        past.add(item);
+      } else {
+        upcoming.add(item);
+      }
+    }
+    upcoming.sort((a, b) => _eventDateTime(a).compareTo(_eventDateTime(b)));
+    past.sort((a, b) => _eventDateTime(b).compareTo(_eventDateTime(a)));
+    return (upcoming, past);
+  }
+
+  DateTime _eventDateTime(Map<String, dynamic> item) {
+    final rawDate = item['date']?.toString() ?? '';
+    final date = DateTime.tryParse(rawDate)?.toLocal();
+    final time = _tryParseTime(item['time']?.toString() ?? '');
+    if (date == null) return DateTime.fromMillisecondsSinceEpoch(0);
+    if (time == null) return date;
+    return DateTime(date.year, date.month, date.day, time.hour, time.minute);
+  }
+
+  String _itemId(Map<String, dynamic> item) =>
+      item['_id']?.toString() ?? item['id']?.toString() ?? '';
 
   DateTime _dateFrom(Map<String, dynamic> item) {
     final raw = item['createdAt']?.toString() ?? item['updatedAt']?.toString() ?? '';

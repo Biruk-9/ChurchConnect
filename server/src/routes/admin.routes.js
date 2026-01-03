@@ -24,6 +24,7 @@ router.put('/announcements/:id', upload.single('image'), announcementCtrl.update
 router.delete('/announcements/:id', announcementCtrl.remove);
 
 // Events admin
+router.get('/events', eventCtrl.listAll);
 router.post('/events', eventCtrl.create);
 router.put('/events/:id', eventCtrl.update);
 router.delete('/events/:id', eventCtrl.remove);

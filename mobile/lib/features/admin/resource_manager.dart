@@ -8,6 +8,7 @@ import '../../core/config/api_config.dart';
 import '../../core/services/admin_service.dart';
 import '../../widgets/error_message.dart';
 import '../../widgets/loading_indicator.dart';
+import '../../core/utils/search_utils.dart';
 
 class ResourceManager extends StatefulWidget {
   const ResourceManager({
@@ -139,6 +140,7 @@ class _ResourceManagerState extends State<ResourceManager> {
   bool _saving = false;
   String? _error;
   String? _editingId;
+  String _query = '';
   List<Map<String, dynamic>> _items = [];
 
   @override
@@ -345,7 +347,7 @@ class _ResourceManagerState extends State<ResourceManager> {
                 child: LoadingIndicator(message: 'Loading resources...'),
               ),
             )
-          else if (_items.isEmpty)
+          else if (_items.isEmpty && _query.isEmpty)
             Container(
               padding: const EdgeInsets.all(40),
               decoration: BoxDecoration(
@@ -377,20 +379,73 @@ class _ResourceManagerState extends State<ResourceManager> {
               ),
             )
           else ...[
-            _CardShell(
-              title: 'Existing Resources',
-              subtitle: '${_items.length} resources available',
-              child: Column(
-                children: [
-                  ..._items.map((item) => _buildResourceCard(item)),
-                ],
-              ),
+            Builder(
+              builder: (_) {
+                final filtered = _filterResources();
+                return _CardShell(
+                  title: 'Existing Resources',
+                  subtitle: '${filtered.length} resources found',
+                  child: Column(
+                    children: [
+                      _buildSearchField(),
+                      const SizedBox(height: 12),
+                      if (filtered.isEmpty)
+                        Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          child: Text('No resources match your search', style: TextStyle(color: Colors.grey.shade700)),
+                        )
+                      else ...filtered.map((item) => _buildResourceCard(item)),
+                    ],
+                  ),
+                );
+              },
             ),
           ],
         ],
       ],
     );
   }
+
+      Widget _buildSearchField() {
+        return TextField(
+          onChanged: (value) => setState(() => _query = value.trim()),
+          decoration: InputDecoration(
+            prefixIcon: const Icon(Icons.search_rounded),
+            hintText: 'Search resources...',
+            filled: true,
+            fillColor: Colors.grey.shade100,
+            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14),
+              borderSide: BorderSide(color: Colors.grey.shade300),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14),
+              borderSide: BorderSide(color: Colors.grey.shade300),
+            ),
+            focusedBorder: const OutlineInputBorder(
+              borderRadius: BorderRadius.all(Radius.circular(14)),
+              borderSide: BorderSide(color: Color(0xFF7C3AED)),
+            ),
+            suffixIcon: _query.isNotEmpty
+              ? IconButton(
+                icon: const Icon(Icons.close_rounded),
+                onPressed: () => setState(() => _query = ''),
+              )
+              : null,
+          ),
+        );
+      }
+
+      List<Map<String, dynamic>> _filterResources() {
+        return SearchUtils.filterByQuery(_items, _query, (item, q) {
+          final title = (item['title'] ?? '').toString().toLowerCase();
+          final desc = (item['description'] ?? '').toString().toLowerCase();
+          final category = (item['category'] ?? item['mediaType'] ?? '').toString().toLowerCase();
+          final access = (item['accessLevel'] ?? '').toString().toLowerCase();
+          return title.contains(q) || desc.contains(q) || category.contains(q) || access.contains(q);
+        });
+      }
 
   Widget _buildForm({required bool inDialog}) {
     return Form(
@@ -696,7 +751,11 @@ class _ResourceManagerState extends State<ResourceManager> {
     final access = item['accessLevel']?.toString() ?? 'public';
     final rawFileUrl = item['fileUrl']?.toString();
     final fileUrl = _resolveFileUrl(rawFileUrl);
+    final thumb = (item['thumbnail'] ?? item['thumbnailUrl'] ?? item['thumb'] ?? item['image'] ?? item['imageUrl'])?.toString();
     final isImage = fileUrl != null && _looksLikeImage(fileUrl);
+    final isVideo = fileUrl != null && _looksLikeVideo(fileUrl);
+    final isPdf = fileUrl != null && _looksLikePdf(fileUrl);
+    final isAudio = fileUrl != null && _looksLikeAudio(fileUrl);
     final hasLink = fileUrl != null;
     final postedAt = _formatPostedAt(_dateFrom(item));
     final mediaTitle = '${category.toUpperCase()} • ${access == 'members' ? 'Members only' : 'Public'}${fileUrl != null ? ' • Link attached' : ''}';
@@ -780,6 +839,12 @@ class _ResourceManagerState extends State<ResourceManager> {
                           ),
                         ),
                       ),
+                    ] else if (isVideo) ...[
+                      const SizedBox(height: 14),
+                      GestureDetector(
+                        onTap: () => _showVideoPreview(fileUrl!, thumbnail: thumb),
+                        child: _buildVideoPreview(fileUrl!, thumbnail: thumb),
+                      ),
                     ],
                     const SizedBox(height: 12),
                     Row(
@@ -788,9 +853,35 @@ class _ResourceManagerState extends State<ResourceManager> {
                         if (hasLink)
                           TextButton.icon(
                             onPressed: () => _openResource(fileUrl),
-                            icon: const Icon(Icons.open_in_new, size: 18),
-                            label: const Text('Open'),
-                            style: TextButton.styleFrom(foregroundColor: const Color(0xFF6D28D9)),
+                            icon: Icon(
+                              isPdf
+                                  ? Icons.picture_as_pdf_outlined
+                                  : isAudio
+                                      ? Icons.headphones_rounded
+                                      : Icons.open_in_new,
+                              size: 18,
+                            ),
+                            label: Text(
+                              isPdf
+                                  ? 'Open PDF'
+                                  : isAudio
+                                      ? 'Play Audio'
+                                      : 'Open',
+                            ),
+                            style: TextButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                              backgroundColor: isPdf
+                                  ? const Color(0xFFFFF7ED)
+                                  : isAudio
+                                      ? const Color(0xFFEFF6FF)
+                                      : Colors.transparent,
+                              foregroundColor: isPdf
+                                  ? const Color(0xFFEA580C)
+                                  : isAudio
+                                      ? const Color(0xFF1D4ED8)
+                                      : const Color(0xFF6D28D9),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            ),
                           )
                         else
                           const SizedBox.shrink(),
@@ -916,6 +1007,20 @@ class _ResourceManagerState extends State<ResourceManager> {
     return lower.endsWith('.png') || lower.endsWith('.jpg') || lower.endsWith('.jpeg') || lower.endsWith('.gif') || lower.endsWith('.webp');
   }
 
+  bool _looksLikeVideo(String url) {
+    final lower = url.toLowerCase();
+    return lower.endsWith('.mp4') || lower.endsWith('.mov') || lower.endsWith('.mkv') || lower.endsWith('.webm') || lower.contains('youtube.com') || lower.contains('youtu.be');
+  }
+
+  bool _looksLikePdf(String url) {
+    return url.toLowerCase().endsWith('.pdf');
+  }
+
+  bool _looksLikeAudio(String url) {
+    final lower = url.toLowerCase();
+    return lower.endsWith('.mp3') || lower.endsWith('.wav') || lower.endsWith('.aac') || lower.endsWith('.m4a');
+  }
+
   void _showImagePreview(String url) {
     showDialog<void>(
       context: context,
@@ -945,6 +1050,89 @@ class _ResourceManagerState extends State<ResourceManager> {
                 child: IconButton(
                   icon: const Icon(Icons.close_rounded, color: Colors.white),
                   onPressed: () => Navigator.of(context).pop(),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildVideoPreview(String url, {String? thumbnail}) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(14),
+      child: Stack(
+        children: [
+          Container(
+            height: 180,
+            width: double.infinity,
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [Color(0xFF0F172A), Color(0xFF1E293B)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              image: (thumbnail != null && thumbnail.isNotEmpty)
+                  ? DecorationImage(image: NetworkImage(thumbnail), fit: BoxFit.cover)
+                  : (_looksLikeImage(url)
+                      ? DecorationImage(image: NetworkImage(url), fit: BoxFit.cover)
+                      : null),
+            ),
+          ),
+          Positioned.fill(
+            child: Container(color: Colors.black.withOpacity(0.35)),
+          ),
+          const Positioned.fill(
+            child: Center(
+              child: CircleAvatar(
+                radius: 30,
+                backgroundColor: Colors.white,
+                child: Icon(Icons.play_arrow_rounded, color: Colors.black87, size: 36),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showVideoPreview(String url, {String? thumbnail}) {
+    showDialog<void>(
+      context: context,
+      builder: (dialogContext) {
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          insetPadding: const EdgeInsets.all(14),
+          child: Stack(
+            children: [
+              Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _buildVideoPreview(url, thumbnail: thumbnail),
+                  const SizedBox(height: 12),
+                  TextButton.icon(
+                    onPressed: () {
+                      Navigator.of(dialogContext).pop();
+                      _openResource(url);
+                    },
+                    icon: const Icon(Icons.open_in_new_rounded),
+                    label: const Text('Open video'),
+                    style: TextButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                      backgroundColor: const Color(0xFFEEF2FF),
+                      foregroundColor: const Color(0xFF4338CA),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                  ),
+                ],
+              ),
+              Positioned(
+                top: 8,
+                right: 8,
+                child: IconButton(
+                  icon: const Icon(Icons.close_rounded, color: Colors.white),
+                  onPressed: () => Navigator.of(dialogContext).pop(),
                 ),
               ),
             ],

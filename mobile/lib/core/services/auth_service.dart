@@ -18,12 +18,21 @@ class AuthService {
 		final data = (resp['data'] is Map) ? resp['data'] as Map : resp;
 		final token = data['token']?.toString();
 		final role = data['role']?.toString();
-		final name = data['name']?.toString();
+		final rawName = data['name'] ?? data['fullName'] ?? data['full_name'] ?? data['username'] ??
+			(data['user'] is Map
+				? (data['user']['name'] ?? data['user']['fullName'] ?? data['user']['full_name'] ?? data['user']['username'])
+				: null);
+		final name = rawName?.toString();
 		if (token == null || token.isEmpty) {
 			throw AuthException('Missing token from server');
 		}
 
-		await StorageService.saveSession(token: token, role: role, name: name);
+		await StorageService.saveSession(
+			token: token,
+			role: role,
+			name: name,
+			loginAt: DateTime.now(),
+		);
 		return token;
 	}
 

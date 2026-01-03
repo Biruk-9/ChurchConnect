@@ -2,7 +2,7 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 
 /// Centralized API endpoints and host resolution.
 class ApiConfig {
-	// Default port for local dev (update to match backend)
+	// Default port for local dev (update to match backend). Server uses 5000 by default.
 	static const int _defaultPort = 5001;
 
 	// Base host per platform. Update these if your backend host changes.

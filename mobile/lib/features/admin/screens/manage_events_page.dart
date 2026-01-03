@@ -8,7 +8,7 @@ class ManageEventsPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return DefaultTabController(
-      length: 2,
+      length: 3,
       child: Scaffold(
         drawer: const AdminDrawer(),
         appBar: AppBar(
@@ -32,7 +32,8 @@ class ManageEventsPage extends StatelessWidget {
                   ),
                   tabs: [
                     Tab(text: 'Create'),
-                    Tab(text: 'Existing Events'),
+                    Tab(text: 'Upcoming Events'),
+                    Tab(text: 'Previous Events'),
                   ],
                 ),
               ),
@@ -58,7 +59,12 @@ class ManageEventsPage extends StatelessWidget {
               SingleChildScrollView(
                 physics: AlwaysScrollableScrollPhysics(),
                 padding: EdgeInsets.fromLTRB(16, 20, 16, 28),
-                child: Column(children: [EventManager(showForm: false)]),
+                child: Column(children: [EventManager(showForm: false, listMode: EventListMode.upcoming)]),
+              ),
+              SingleChildScrollView(
+                physics: AlwaysScrollableScrollPhysics(),
+                padding: EdgeInsets.fromLTRB(16, 20, 16, 28),
+                child: Column(children: [EventManager(showForm: false, listMode: EventListMode.past)]),
               ),
             ],
           ),

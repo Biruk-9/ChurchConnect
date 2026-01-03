@@ -7,6 +7,11 @@ async function listUpcoming(req, res) {
 	return success(res, items);
 }
 
+async function listAll(req, res) {
+	const items = await Event.find({}).sort({ date: -1 });
+	return success(res, items);
+}
+
 async function create(req, res) {
 	const { title, description, date, time, location } = req.body || {};
 	if (!title || !date || !time) return error(res, 400, 'title, date, time required');
@@ -29,4 +34,4 @@ async function remove(req, res) {
 	return success(res, null, 'Event deleted');
 }
 
-module.exports = { listUpcoming, create, update, remove };
+module.exports = { listUpcoming, listAll, create, update, remove };

@@ -1,6 +1,6 @@
 const express = require('express');
 const { list } = require('../controllers/announcement.controller');
-const { listUpcoming } = require('../controllers/event.controller');
+const { listAll } = require('../controllers/event.controller');
 const resourceCtrl = require('../controllers/resource.controller');
 const { success } = require('../utils/response.util');
 
@@ -9,8 +9,8 @@ const router = express.Router();
 // Announcements (public)
 router.get('/announcements', list);
 
-// Events (public)
-router.get('/events', listUpcoming);
+// Events (public) - return all, client will split upcoming/past
+router.get('/events', listAll);
 
 // Resources (public)
 router.get('/resources', resourceCtrl.listPublic);

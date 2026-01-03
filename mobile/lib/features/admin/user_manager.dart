@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../core/services/admin_service.dart';
 import '../../widgets/error_message.dart';
 import '../../widgets/loading_indicator.dart';
+import '../../core/utils/search_utils.dart';
 
 class _CardShell extends StatelessWidget {
   const _CardShell({
@@ -124,6 +125,7 @@ class _UserManagerState extends State<UserManager> {
   bool _saving = false;
   String? _error;
   String? _editingId;
+  String _query = '';
   List<Map<String, dynamic>> _items = [];
 
   @override
@@ -333,7 +335,7 @@ class _UserManagerState extends State<UserManager> {
                 child: LoadingIndicator(message: 'Loading members...'),
               ),
             )
-          else if (_items.isEmpty)
+          else if (_items.isEmpty && _query.isEmpty)
             Container(
               padding: const EdgeInsets.all(40),
               decoration: BoxDecoration(
@@ -365,37 +367,90 @@ class _UserManagerState extends State<UserManager> {
               ),
             )
           else ...[
-            _CardShell(
-              title: 'Members',
-              subtitle: '${_items.length} account(s)',
-              child: Column(
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            Builder(
+              builder: (_) {
+                final filtered = _filterUsers();
+                return _CardShell(
+                  title: 'Members',
+                  subtitle: '${filtered.length} account(s)',
+                  child: Column(
                     children: [
-                      const Text('Include inactive', style: TextStyle(fontWeight: FontWeight.w600)),
-                      Switch(
-                        value: _includeInactive,
-                        activeColor: Colors.green,
-                        inactiveThumbColor: Colors.red,
-                        inactiveTrackColor: Colors.red.withOpacity(0.35),
-                        onChanged: (v) {
-                          setState(() => _includeInactive = v);
-                          _load();
-                        },
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  ..._items.map((item) => _buildUserCard(item)),
-                ],
-              ),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text('Include inactive', style: TextStyle(fontWeight: FontWeight.w600)),
+                          Switch(
+                            value: _includeInactive,
+                            activeColor: Colors.green,
+                            inactiveThumbColor: Colors.red,
+                            inactiveTrackColor: Colors.red.withOpacity(0.35),
+                            onChanged: (v) {
+                            setState(() => _includeInactive = v);
+                            _load();
+                          },
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    _buildSearchField(),
+                    const SizedBox(height: 12),
+                    if (filtered.isEmpty)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        child: Text('No members match your search', style: TextStyle(color: Colors.grey.shade700)),
+                      )
+                    else ...filtered.map((item) => _buildUserCard(item)),
+                  ],
+                ),
+              );
+              },
             ),
           ],
         ],
       ],
     );
   }
+
+      Widget _buildSearchField() {
+        return TextField(
+          onChanged: (value) => setState(() => _query = value.trim()),
+          decoration: InputDecoration(
+            prefixIcon: const Icon(Icons.search_rounded),
+            hintText: 'Search members by name, email, role...',
+            filled: true,
+            fillColor: Colors.grey.shade100,
+            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14),
+              borderSide: BorderSide(color: Colors.grey.shade300),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14),
+              borderSide: BorderSide(color: Colors.grey.shade300),
+            ),
+            focusedBorder: const OutlineInputBorder(
+              borderRadius: BorderRadius.all(Radius.circular(14)),
+              borderSide: BorderSide(color: Color(0xFF7C3AED)),
+            ),
+            suffixIcon: _query.isNotEmpty
+              ? IconButton(
+                icon: const Icon(Icons.close_rounded),
+                onPressed: () => setState(() => _query = ''),
+              )
+              : null,
+          ),
+        );
+      }
+
+      List<Map<String, dynamic>> _filterUsers() {
+        return SearchUtils.filterByQuery(_items, _query, (item, q) {
+          final name = (item['name'] ?? '').toString().toLowerCase();
+          final email = (item['email'] ?? '').toString().toLowerCase();
+          final role = (item['role'] ?? '').toString().toLowerCase();
+          final status = item['isActive'] == true ? 'active' : 'inactive';
+          return name.contains(q) || email.contains(q) || role.contains(q) || status.contains(q);
+        });
+      }
 
   Widget _buildForm({required bool inDialog}) {
     return Form(

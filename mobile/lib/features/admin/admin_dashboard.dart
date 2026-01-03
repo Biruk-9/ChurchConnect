@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../core/config/app_routes.dart';
 import '../../core/services/admin_service.dart';
 import '../../core/services/auth_service.dart';
+import '../../core/services/storage_service.dart';
 import '../../widgets/loading_indicator.dart';
 import '../../widgets/error_message.dart';
 import 'widgets/admin_drawer.dart';
@@ -41,11 +42,13 @@ class _AdminDashboardState extends State<AdminDashboard> {
         final afterLogin = await AuthService.isLoggedIn();
         final role = await AuthService.getRole();
         final name = await AuthService.getUserName();
+        final lastLogin = await StorageService.getLastLogin();
 
         setState(() {
           _authed = afterLogin;
           _isAdmin = role == 'admin';
           _adminName = name ?? 'Admin';
+          _lastLogin = lastLogin;
           _checking = false;
         });
 
@@ -55,16 +58,26 @@ class _AdminDashboardState extends State<AdminDashboard> {
       } else {
         final role = await AuthService.getRole();
         final name = await AuthService.getUserName();
+        final lastLogin = await StorageService.getLastLogin();
 
         setState(() {
           _authed = true;
           _isAdmin = role == 'admin';
           _adminName = name ?? 'Admin';
+          _lastLogin = lastLogin;
           _checking = false;
         });
 
         if (role == 'admin') {
           await _loadDashboard();
+          // Backfill last login if missing (e.g., pre-existing sessions before this feature)
+          if (_lastLogin == null) {
+            final now = DateTime.now();
+            await StorageService.saveLastLogin(now);
+            if (mounted) {
+              setState(() => _lastLogin = now.toIso8601String());
+            }
+          }
         }
       }
     } catch (e) {
@@ -89,7 +102,6 @@ class _AdminDashboardState extends State<AdminDashboard> {
       setState(() {
         _summary = summary;
         _loadingData = false;
-        _lastLogin = "Today"; // ← placeholder - improve later if needed
       });
     } catch (e) {
       if (!mounted) return;
@@ -141,19 +153,6 @@ class _AdminDashboardState extends State<AdminDashboard> {
         backgroundColor: Colors.white,
         foregroundColor: Colors.black,
         iconTheme: const IconThemeData(color: Colors.black),
-        actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 12),
-            child: CircleAvatar(
-              radius: 18,
-              backgroundColor: const Color(0xFFEEF2FF),
-              child: Text(
-                _adminName?.substring(0, 1).toUpperCase() ?? 'A',
-                style: const TextStyle(color: Color(0xFF4C1D95)),
-              ),
-            ),
-          ),
-        ],
       ),
 
       body: Container(
@@ -178,9 +177,9 @@ class _AdminDashboardState extends State<AdminDashboard> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    'Welcome, ${_adminName ?? "Admin"}!',
-                    style: const TextStyle(
+                  const Text(
+                    'Welcome, Admin!',
+                    style: TextStyle(
                       fontSize: 28,
                       fontWeight: FontWeight.bold,
                       color: Colors.white,
@@ -188,7 +187,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    _lastLogin != null ? 'Last active: $_lastLogin' : '',
+                    _formatLastLogin(_lastLogin),
                     style: TextStyle(
                       color: Colors.white.withOpacity(0.75),
                       fontSize: 14,
@@ -316,3 +315,20 @@ class _StatCard extends StatelessWidget {
     );
   }
 }
+
+  String _formatLastLogin(String? raw) {
+    if (raw == null || raw.isEmpty) return '';
+    final dt = DateTime.tryParse(raw);
+    if (dt == null) return 'Last active: $raw';
+
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final target = DateTime(dt.year, dt.month, dt.day);
+    final isToday = target == today;
+    final isYesterday = target == today.subtract(const Duration(days: 1));
+
+    String hhmm = '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
+    if (isToday) return 'Last active: Today at $hhmm';
+    if (isYesterday) return 'Last active: Yesterday at $hhmm';
+    return 'Last active: ${dt.month}/${dt.day}/${dt.year} $hhmm';
+  }

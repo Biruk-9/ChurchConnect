@@ -7,6 +7,7 @@ import '../../core/config/api_config.dart';
 import '../../core/services/admin_service.dart';
 import '../../widgets/error_message.dart';
 import '../../widgets/loading_indicator.dart';
+import '../../core/utils/search_utils.dart';
 
 class _CardShell extends StatelessWidget {
   const _CardShell({
@@ -79,7 +80,7 @@ class _CardShell extends StatelessWidget {
                           style: const TextStyle(
                             fontSize: 22,
                             fontWeight: FontWeight.w800,
-                            color: Color(0xFF1F2937),
+                            color: Colors.black,
                           ),
                         ),
                         const SizedBox(height: 4),
@@ -120,6 +121,7 @@ class _AnnouncementManagerState extends State<AnnouncementManager> {
   bool _loading = false;
   bool _saving = false;
   String? _error;
+  String _query = '';
 
   final _formKey = GlobalKey<FormState>();
   final _titleCtrl = TextEditingController();
@@ -313,7 +315,7 @@ class _AnnouncementManagerState extends State<AnnouncementManager> {
                 child: LoadingIndicator(message: 'Loading announcements...'),
               ),
             )
-          else if (_items.isEmpty)
+          else if (_items.isEmpty && _query.isEmpty)
             Container(
               padding: const EdgeInsets.all(40),
               decoration: BoxDecoration(
@@ -345,20 +347,72 @@ class _AnnouncementManagerState extends State<AnnouncementManager> {
               ),
             )
           else ...[
-            _CardShell(
-              title: 'Existing Announcements',
-              subtitle: '${_items.length} announcement(s) posted',
-              child: Column(
-                children: [
-                  ..._items.map((item) => _buildAnnouncementCard(item)),
-                ],
-              ),
+            Builder(
+              builder: (_) {
+                final filtered = _filterAnnouncements();
+                return _CardShell(
+                  title: 'Existing Announcements',
+                  subtitle: '${filtered.length} announcement(s) found',
+                  child: Column(
+                    children: [
+                      _buildSearchField(),
+                      const SizedBox(height: 12),
+                      if (filtered.isEmpty)
+                        Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          child: Text('No announcements match your search', style: TextStyle(color: Colors.grey.shade700)),
+                        )
+                      else ...filtered.map((item) => _buildAnnouncementCard(item)),
+                    ],
+                  ),
+                );
+              },
             ),
           ],
         ],
       ],
     );
   }
+
+      Widget _buildSearchField() {
+        return TextField(
+          onChanged: (value) => setState(() => _query = value.trim()),
+          decoration: InputDecoration(
+            prefixIcon: const Icon(Icons.search_rounded),
+            hintText: 'Search announcements...',
+            filled: true,
+            fillColor: Colors.grey.shade100,
+            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14),
+              borderSide: BorderSide(color: Colors.grey.shade300),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14),
+              borderSide: BorderSide(color: Colors.grey.shade300),
+            ),
+            focusedBorder: const OutlineInputBorder(
+              borderRadius: BorderRadius.all(Radius.circular(14)),
+              borderSide: BorderSide(color: Color(0xFF7C3AED)),
+            ),
+            suffixIcon: _query.isNotEmpty
+              ? IconButton(
+                icon: const Icon(Icons.close_rounded),
+                onPressed: () => setState(() => _query = ''),
+              )
+              : null,
+          ),
+        );
+      }
+
+      List<Map<String, dynamic>> _filterAnnouncements() {
+        return SearchUtils.filterByQuery(_items, _query, (item, q) {
+          final title = (item['title'] ?? '').toString().toLowerCase();
+          final content = (item['content'] ?? '').toString().toLowerCase();
+          final date = _formatPostedAt(_dateFrom(item)).toLowerCase();
+          return title.contains(q) || content.contains(q) || date.contains(q);
+        });
+      }
 
   Widget _buildForm({required bool inDialog}) {
     return Form(

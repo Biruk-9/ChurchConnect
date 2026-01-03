@@ -162,8 +162,14 @@ class AdminService {
 
   // Events
   static Future<List<Map<String, dynamic>>> fetchEvents() async {
-    final resp = await ApiService.get('/api/public/events');
-    return _asList(resp);
+    final token = await _requireToken();
+    final resp = await http
+      .get(
+        Uri.parse('${ApiConfig.baseUrl}${ApiConfig.adminBasePath}/events'),
+        headers: _authHeaders(token),
+      )
+      .timeout(AppConstants.networkTimeout);
+    return _asList(_decode(resp));
   }
 
   static Future<Map<String, dynamic>> createEvent({
