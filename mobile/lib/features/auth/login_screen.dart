@@ -45,10 +45,33 @@ class _LoginScreenState extends State<LoginScreen> {
       );
       Navigator.of(context).maybePop();
     } catch (e) {
-      setState(() => _error = e.toString());
+      setState(() => _error = _friendlyError(e));
     } finally {
       setState(() => _loading = false);
     }
+  }
+
+  String _friendlyError(Object e) {
+    final raw = e.toString();
+    final lower = raw.toLowerCase();
+
+    // Normalize known auth errors to a friendly message
+    if (lower.contains('invalid credentials') ||
+        (lower.contains('invalid') && lower.contains('password')) ||
+        lower.contains('wrong password') ||
+        lower.contains('incorrect password') ||
+        lower.contains('unauthorized') ||
+        lower.contains('401')) {
+      return 'Wrong email or password';
+    }
+
+    if (raw.startsWith('AuthException:')) {
+      return raw.replaceFirst('AuthException:', '').trim();
+    }
+    if (raw.startsWith('APIException:')) {
+      return raw.replaceFirst('APIException:', '').trim();
+    }
+    return raw;
   }
 
 InputDecoration _inputDecoration({
