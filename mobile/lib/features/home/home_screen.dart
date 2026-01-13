@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../core/config/app_routes.dart';
+import '../../core/services/api_service.dart';
 import '../../core/services/auth_service.dart';
 import '../../features/bible_verse/verse_service.dart';
 import '../../features/announcements/announcement_service.dart';
@@ -59,7 +60,8 @@ class _HomeScreenState extends State<HomeScreen> {
       setState(() => _verse = data);
     } catch (e) {
       if (!mounted) return;
-      setState(() => _verseError = e.toString());
+      final message = e is ApiException ? e.message : e.toString();
+      setState(() => _verseError = message);
     } finally {
       if (mounted) setState(() => _verseLoading = false);
     }
