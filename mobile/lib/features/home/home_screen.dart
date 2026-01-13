@@ -28,6 +28,8 @@ class _HomeScreenState extends State<HomeScreen> {
   Announcement? _latestAnnouncement;
   Map<String, dynamic>? _latestEvent;
   Map<String, dynamic>? _latestResource;
+  int _logoTapCount = 0;
+  DateTime? _lastLogoTap;
 
   @override
   void initState() {
@@ -92,6 +94,21 @@ class _HomeScreenState extends State<HomeScreen> {
       _loadVerse(),
       _loadHighlights(),
     ]);
+  }
+
+  void _handleLogoTap() {
+    final now = DateTime.now();
+    if (_lastLogoTap == null || now.difference(_lastLogoTap!) > const Duration(seconds: 3)) {
+      _logoTapCount = 0; // reset if too slow between taps
+    }
+    _lastLogoTap = now;
+    _logoTapCount++;
+
+    if (_logoTapCount >= 6) {
+      _logoTapCount = 0;
+      _lastLogoTap = null;
+      Navigator.of(context).pushNamed(AppRoutes.admin);
+    }
   }
 
   Future<void> _go(BuildContext context, String route, {bool requiresAuth = false}) async {
@@ -176,16 +193,20 @@ class _HomeScreenState extends State<HomeScreen> {
         Row(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.14),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(
-                Icons.church_rounded,
-                color: Colors.white,
-                size: 34,
+            GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: _handleLogoTap,
+              child: Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.14),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.church_rounded,
+                  color: Colors.white,
+                  size: 34,
+                ),
               ),
             ),
             const SizedBox(width: 12),
