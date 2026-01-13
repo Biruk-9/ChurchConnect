@@ -377,48 +377,51 @@ class _HomeScreenState extends State<HomeScreen> {
     required Color color,
     required VoidCallback onTap,
   }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.95),
-          borderRadius: BorderRadius.circular(20),
-          boxShadow: [
-            BoxShadow(color: Colors.black.withOpacity(0.12), blurRadius: 20, offset: const Offset(0, 10)),
-          ],
-        ),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: color.withOpacity(0.15),
-                borderRadius: BorderRadius.circular(14),
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.95),
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+              BoxShadow(color: Colors.black.withOpacity(0.12), blurRadius: 20, offset: const Offset(0, 10)),
+            ],
+          ),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: color.withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Icon(icon, color: color, size: 28),
               ),
-              child: Icon(icon, color: color, size: 28),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    content,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(color: Colors.grey.shade700, fontSize: 14),
-                  ),
-                ],
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      content,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(color: Colors.grey.shade700, fontSize: 14),
+                    ),
+                  ],
+                ),
               ),
-            ),
-            const Icon(Icons.chevron_right_rounded, color: Colors.grey),
-          ],
+              const Icon(Icons.chevron_right_rounded, color: Colors.grey),
+            ],
+          ),
         ),
       ),
     );
@@ -444,47 +447,50 @@ class _HomeScreenState extends State<HomeScreen> {
             crossAxisCount: 2,
             crossAxisSpacing: 16,
             mainAxisSpacing: 16,
-            childAspectRatio: 1.35,
+            childAspectRatio: 1.1,
           ),
           itemCount: items.length,
           itemBuilder: (context, index) {
             final item = items[index];
-            return GestureDetector(
-              onTap: () => _go(context, item.route, requiresAuth: item.requiresAuth),
-              child: Container(
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.95),
-                  borderRadius: BorderRadius.circular(24),
-                  boxShadow: [
-                    BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 16, offset: const Offset(0, 8)),
-                  ],
-                ),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(14),
-                      decoration: BoxDecoration(
-                        gradient: const LinearGradient(colors: [Color(0xFF7C3AED), Color(0xFF6D28D9)]),
-                        shape: BoxShape.circle,
+            return MouseRegion(
+              cursor: SystemMouseCursors.click,
+              child: GestureDetector(
+                onTap: () => _go(context, item.route, requiresAuth: item.requiresAuth),
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.95),
+                    borderRadius: BorderRadius.circular(24),
+                    boxShadow: [
+                      BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 16, offset: const Offset(0, 8)),
+                    ],
+                  ),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(colors: [Color(0xFF7C3AED), Color(0xFF6D28D9)]),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(item.icon, color: Colors.white, size: 32),
                       ),
-                      child: Icon(item.icon, color: Colors.white, size: 32),
-                    ),
-                    const SizedBox(height: 12),
-                    Text(
-                      item.title,
-                      style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
-                      textAlign: TextAlign.center,
-                    ),
-                    if (item.subtitle != null) ...[
-                      const SizedBox(height: 4),
+                      const SizedBox(height: 12),
                       Text(
-                        item.subtitle!,
-                        style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                        item.title,
+                        style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
                         textAlign: TextAlign.center,
                       ),
+                      if (item.subtitle != null) ...[
+                        const SizedBox(height: 4),
+                        Text(
+                          item.subtitle!,
+                          style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                          textAlign: TextAlign.center,
+                        ),
+                      ],
                     ],
-                  ],
+                  ),
                 ),
               ),
             );
