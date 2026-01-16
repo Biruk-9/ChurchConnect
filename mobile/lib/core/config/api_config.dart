@@ -26,7 +26,7 @@ class ApiConfig {
 	}
 
 	/// Full base URL (protocol + host + port) for REST calls.
-	static String get baseUrl => 'http://$_host:$_port';
+	static String get baseUrl => 'https://f9a5f15a9807.ngrok-free.app';
 
 	// Paths (relative) used with ApiService builders
 	static const String healthPath = '/health';

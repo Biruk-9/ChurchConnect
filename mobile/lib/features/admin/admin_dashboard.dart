@@ -133,7 +133,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
               OutlinedButton(
                 onPressed: () async {
                   await AuthService.logout();
-                  if (!mounted) return;
+                  if (!context.mounted) return;
                   Navigator.of(context).pushNamedAndRemoveUntil(AppRoutes.login, (_) => false);
                 },
                 child: const Text('Login as Admin'),
@@ -177,9 +177,9 @@ class _AdminDashboardState extends State<AdminDashboard> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    'Welcome, Admin!',
-                    style: TextStyle(
+                  Text(
+                    'Welcome, ${_adminName ?? 'Admin'}!',
+                    style: const TextStyle(
                       fontSize: 28,
                       fontWeight: FontWeight.bold,
                       color: Colors.white,
@@ -188,10 +188,9 @@ class _AdminDashboardState extends State<AdminDashboard> {
                   const SizedBox(height: 4),
                   Text(
                     _formatLastLogin(_lastLogin),
-                    style: TextStyle(
-                      color: Colors.white.withOpacity(0.75),
+                    style: const TextStyle(
                       fontSize: 14,
-                    ),
+                    ).copyWith(color: Colors.white.withValues(alpha: 0.75)),
                   ),
 
                   const SizedBox(height: 32),
@@ -229,7 +228,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
         crossAxisCount: 2,
         crossAxisSpacing: 16,
         mainAxisSpacing: 16,
-        childAspectRatio: 1.2,
+        childAspectRatio: 0.9,
       ),
       itemCount: stats.length,
       itemBuilder: (context, index) {
@@ -262,11 +261,11 @@ class _StatCard extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
-        border: Border.all(color: const Color(0xFF6D28D9).withOpacity(0.15)),
+        border: Border.all(color: const Color(0xFF6D28D9).withValues(alpha: 0.15)),
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF6D28D9).withOpacity(0.18),
+            color: const Color(0xFF6D28D9).withValues(alpha: 0.18),
             blurRadius: 18,
             offset: const Offset(0, 10),
           ),
@@ -302,11 +301,10 @@ class _StatCard extends StatelessWidget {
             const SizedBox(height: 6),
             Text(
               title,
-              style: TextStyle(
+              style: const TextStyle(
                 fontSize: 15,
                 fontWeight: FontWeight.w500,
-                color: Colors.black.withOpacity(0.75),
-              ),
+              ).copyWith(color: Colors.black.withValues(alpha: 0.75)),
               textAlign: TextAlign.center,
             ),
           ],

@@ -225,7 +225,6 @@ class _MemberResourcesScreenState extends State<MemberResourcesScreen> {
 	}
 
 	Drawer _buildDrawer(BuildContext context, List<_NavItem> items) {
-		final initial = (_userName != null && _userName!.isNotEmpty) ? _userName!.substring(0, 1).toUpperCase() : 'C';
 		final status = _isLoggedIn ? 'Member' : 'Guest';
 		final displayName = _userName ?? 'Welcome';
 		return Drawer(

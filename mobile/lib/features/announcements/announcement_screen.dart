@@ -246,13 +246,13 @@ class _AnnouncementScreenState extends State<AnnouncementScreen> {
 					if (hasImage) ...[
 						const SizedBox(height: 12),
 						GestureDetector(
-							onTap: () => _showImagePreview(context, resolvedImage!),
+							onTap: () => _showImagePreview(context, resolvedImage),
 							child: ClipRRect(
 								borderRadius: BorderRadius.circular(16),
 								child: AspectRatio(
 									aspectRatio: 16 / 11,
 									child: Image.network(
-										resolvedImage!,
+										resolvedImage,
 										fit: BoxFit.cover,
 										width: double.infinity,
 										loadingBuilder: (context, child, loadingProgress) {
@@ -329,7 +329,6 @@ class _AnnouncementScreenState extends State<AnnouncementScreen> {
 		}
 
 	Drawer _buildDrawer(BuildContext context, List<_NavItem> items) {
-		final initial = (_userName != null && _userName!.isNotEmpty) ? _userName!.substring(0, 1).toUpperCase() : 'C';
 		final status = _isLoggedIn ? 'Member' : 'Guest';
 		final displayName = _userName ?? 'Welcome';
 		return Drawer(
